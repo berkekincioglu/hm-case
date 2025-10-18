@@ -127,6 +127,45 @@ class CoinRepository {
       throw error;
     }
   }
+
+  /**
+   * Get coin metadata
+   */
+  async getMetadata(coinId: string) {
+    try {
+      return await prisma.coinMetadata.findUnique({
+        where: { coinId },
+      });
+    } catch (error) {
+      logger.error(`Failed to get metadata for coin: ${coinId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create or update coin metadata
+   */
+  async upsertMetadata(data: {
+    coinId: string;
+    description: string | null;
+    imageUrl: string | null;
+    homepageUrl: string | null;
+  }) {
+    try {
+      return await prisma.coinMetadata.upsert({
+        where: { coinId: data.coinId },
+        create: data,
+        update: {
+          description: data.description,
+          imageUrl: data.imageUrl,
+          homepageUrl: data.homepageUrl,
+        },
+      });
+    } catch (error) {
+      logger.error(`Failed to upsert metadata for coin: ${data.coinId}`, error);
+      throw error;
+    }
+  }
 }
 
 export const coinRepository = new CoinRepository();

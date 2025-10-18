@@ -82,12 +82,17 @@ class DataFetcherService {
 
   /**
    * Fetch and store historical price data
-   * Date range: July 1, 2025 - August 31, 2025
+   * Date range: Last 90 days (flexible for testing in Oct/Nov/Dec)
+   * Currently: July 20, 2025 - October 18, 2025
+   * IMPORTANT NOTE : CoinGecko demo API key does not support historical data within past 365 days.
+   * ERROR MESSAGE Public API users are limited to querying historical data within the past 365 days.
+   * Upgrade to a paid plan to enjoy full historical data access: https://www.coingecko.com/en/api/pricing
    */
   async fetchHistoricalPrices(): Promise<void> {
     try {
-      const from = moment("2025-07-01").unix(); // Unix timestamp
-      const to = moment("2025-08-31").endOf("day").unix();
+      // Last 90 days from today
+      const to = moment().endOf("day").unix(); // Today
+      const from = moment().subtract(90, "days").startOf("day").unix(); // 90 days ago
 
       logger.info("Starting historical price data fetch...", {
         from: moment.unix(from).format("YYYY-MM-DD"),

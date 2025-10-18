@@ -76,7 +76,7 @@ class CoinGeckoService {
   }
 
   /**
-   * Add delay to respect rate limits
+   * Add delay to respect rate limits 30 seconds/minute
    */
   private async delay(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, this.rateLimitDelay));
