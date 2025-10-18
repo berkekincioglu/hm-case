@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Coin {
+  id        String   @id @db.VarChar(50) // e.g., 'bitcoin'
+  symbol    String   @db.VarChar(10) // e.g., 'BTC'
+  name      String   @db.VarChar(100) // e.g., 'Bitcoin'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pricesDaily  PriceDaily[]
+  pricesHourly PriceHourly[]
+  metadata     CoinMetadata?
+
+  @@map("coins")
+}
+
+model Currency {
+  code      String   @id @db.VarChar(10) // e.g., 'USD'
+  name      String   @db.VarChar(50) // e.g., 'US Dollar'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pricesDaily  PriceDaily[]
+  pricesHourly PriceHourly[]
+
+  @@map("currencies")
+}
+
+model PriceDaily {
+  id           Int      @id @default(autoincrement())
+  coinId       String   @map("coin_id") @db.VarChar(50)
+  currencyCode String   @map("currency_code") @db.VarChar(10)
+  date         DateTime @db.Date
+  price        Decimal  @db.Decimal(20, 8)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  coin     Coin     @relation(fields: [coinId], references: [id], onDelete: Cascade)
+  currency Currency @relation(fields: [currencyCode], references: [code], onDelete: Cascade)
+
+  @@unique([coinId, currencyCode, date])
+  @@index([coinId, currencyCode, date], name: "idx_prices_daily_lookup")
+  @@index([date], name: "idx_prices_daily_date")
+  @@map("prices_daily")
+}
+
+model PriceHourly {
+  id           Int      @id @default(autoincrement())
+  coinId       String   @map("coin_id") @db.VarChar(50)
+  currencyCode String   @map("currency_code") @db.VarChar(10)
+  timestamp    DateTime @db.Timestamp()
+  price        Decimal  @db.Decimal(20, 8)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  coin     Coin     @relation(fields: [coinId], references: [id], onDelete: Cascade)
+  currency Currency @relation(fields: [currencyCode], references: [code], onDelete: Cascade)
+
+  @@unique([coinId, currencyCode, timestamp])
+  @@index([coinId, currencyCode, timestamp], name: "idx_prices_hourly_lookup")
+  @@index([timestamp], name: "idx_prices_hourly_timestamp")
+  @@map("prices_hourly")
+}
+
+model CoinMetadata {
+  coinId      String   @id @map("coin_id") @db.VarChar(50)
+  description String?  @db.Text
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  homepageUrl String?  @map("homepage_url") @db.VarChar(500)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  coin Coin @relation(fields: [coinId], references: [id], onDelete: Cascade)
+
+  @@map("coin_metadata")
+}
