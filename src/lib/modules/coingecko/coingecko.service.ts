@@ -1,6 +1,9 @@
-import axios, { AxiosInstance } from "axios";
+import type { AxiosInstance } from "axios";
+import axios from "axios";
+
 import { logger } from "@/lib/utils/logger";
-import {
+
+import type {
   CoinListItem,
   MarketChartRange,
   CoinDetail,
@@ -129,6 +132,40 @@ class CoinGeckoService {
   }
 
   /**
+   * Get historical market data using days parameter (auto-adjusts granularity)
+   * - days=1-90: Returns ~5min intervals (fine-grained data)
+   * - days=90+: Returns daily intervals
+   */
+  async getMarketChart(params: {
+    coinId: string;
+    currency: string;
+    days: number;
+  }): Promise<MarketChartRange> {
+    try {
+      await this.delay(); // Rate limiting
+
+      const client = this.getClient();
+      const response = await client.get<MarketChartRange>(
+        `/coins/${params.coinId}/market_chart`,
+        {
+          params: {
+            vs_currency: params.currency,
+            days: params.days,
+          },
+        }
+      );
+
+      logger.info(
+        `Fetched ${response.data.prices.length} price points for ${params.coinId} (${params.days} days)`
+      );
+      return response.data;
+    } catch (error) {
+      logger.error(`Failed to fetch market chart for ${params.coinId}`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get detailed information about a specific coin (for metadata)
    */
   async getCoinDetail(coinId: string): Promise<CoinDetail> {
@@ -153,6 +190,42 @@ class CoinGeckoService {
       logger.error(`Failed to fetch coin detail for ${coinId}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Batch fetch market data for multiple coins (using days parameter)
+   */
+  async batchFetchMarketDataByDays(
+    coinIds: string[],
+    currencies: string[],
+    days: number
+  ): Promise<Map<string, Map<string, MarketChartRange>>> {
+    const results = new Map<string, Map<string, MarketChartRange>>();
+
+    for (const coinId of coinIds) {
+      const coinResults = new Map<string, MarketChartRange>();
+
+      for (const currency of currencies) {
+        try {
+          const data = await this.getMarketChart({
+            coinId,
+            currency,
+            days,
+          });
+          coinResults.set(currency, data);
+          logger.success(`Fetched ${coinId}/${currency.toUpperCase()}`);
+        } catch (error) {
+          logger.error(
+            `Failed to fetch ${coinId}/${currency.toUpperCase()}`,
+            error
+          );
+        }
+      }
+
+      results.set(coinId, coinResults);
+    }
+
+    return results;
   }
 
   /**

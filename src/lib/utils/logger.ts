@@ -16,8 +16,10 @@ class Logger {
       colors.reset
     } ${timestamp}`;
 
+    // eslint-disable-next-line no-console
     console.log(`${prefix} - ${message}`);
     if (data) {
+      // eslint-disable-next-line no-console
       console.log(JSON.stringify(data, null, 2));
     }
   }

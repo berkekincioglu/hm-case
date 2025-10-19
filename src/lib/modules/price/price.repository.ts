@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/db/prisma";
-import {
+import { logger } from "@/lib/utils/logger";
+
+import type {
   CreatePriceDailyDto,
   CreatePriceHourlyDto,
   PriceDailyEntity,
   PriceHourlyEntity,
 } from "./price.types";
-import { logger } from "@/lib/utils/logger";
 
 class PriceRepository {
   /**
@@ -146,6 +147,25 @@ class PriceRepository {
       logger.info(`Deleted all prices for coin: ${coinId}`);
     } catch (error) {
       logger.error(`Failed to delete prices for coin: ${coinId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all prices
+   */
+  async deleteAll(): Promise<{ daily: number; hourly: number }> {
+    try {
+      const [dailyResult, hourlyResult] = await prisma.$transaction([
+        prisma.priceDaily.deleteMany({}),
+        prisma.priceHourly.deleteMany({}),
+      ]);
+      logger.info(
+        `Deleted ${dailyResult.count} daily and ${hourlyResult.count} hourly records`
+      );
+      return { daily: dailyResult.count, hourly: hourlyResult.count };
+    } catch (error) {
+      logger.error("Failed to delete all prices", error);
       throw error;
     }
   }

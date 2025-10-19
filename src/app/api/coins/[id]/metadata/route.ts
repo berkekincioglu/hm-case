@@ -1,8 +1,9 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+
 import { coinRepository } from "@/lib/modules/coin/coin.repository";
 import { coinGeckoService } from "@/lib/modules/coingecko/coingecko.service";
-import { ApiResponse } from "@/lib/utils/response";
 import { logger } from "@/lib/utils/logger";
+import { ApiResponse } from "@/lib/utils/response";
 
 /**
  * GET /api/coins/[id]/metadata

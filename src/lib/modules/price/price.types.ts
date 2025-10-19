@@ -1,6 +1,6 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import type { Decimal } from "@prisma/client/runtime/library";
 
-// Raw price entities from database
+// Daily price entity - aggregated daily averages
 export interface PriceDailyEntity {
   id: number;
   coinId: string;
@@ -10,6 +10,7 @@ export interface PriceDailyEntity {
   createdAt: Date;
 }
 
+// Hourly price entity - raw granular data
 export interface PriceHourlyEntity {
   id: number;
   coinId: string;

@@ -1,34 +1,26 @@
-import { NextRequest } from "next/server";
-import { priceService } from "@/lib/modules/price/price.service";
-import { ApiResponse } from "@/lib/utils/response";
-import { logger } from "@/lib/utils/logger";
-import {
-  Granularity,
-  BreakdownDimension,
-} from "@/lib/modules/price/price.types";
 import moment from "moment";
+import type { NextRequest } from "next/server";
+
+import { priceService } from "@/lib/modules/price/price.service";
+import type {
+  BreakdownDimension,
+  Granularity,
+} from "@/lib/modules/price/price.types";
+import { logger } from "@/lib/utils/logger";
+import { ApiResponse } from "@/lib/utils/response";
 
 /**
  * GET /api/prices
  *
- * Fetches and aggregates cryptocurrency price data based on filters and breakdown dimensions.
+ * Fetches cryptocurrency price data with appropriate granularity.
  *
  * Query Parameters:
- * @param coinIds - Comma-separated coin IDs (e.g., "bitcoin,ethereum,solana")
- * @param currencyCodes - Comma-separated currency codes (e.g., "usd,eur,try")
- * @param dateFrom - Start date in ISO format (e.g., "2025-10-01")
- * @param dateTo - End date in ISO format (e.g., "2025-10-19")
- * @param breakdown - Comma-separated dimensions (e.g., "coin,currency,date")
- * @param granularity - Optional: "daily" or "hourly" (auto-detected based on date range if not provided)
- *
- * Response:
- * - 200: Array of aggregated prices
- * - 400: Invalid parameters
- * - 500: Server error
- *
- * Examples:
- * - /api/prices?coinIds=bitcoin&currencyCodes=usd&dateFrom=2025-10-01&dateTo=2025-10-19&breakdown=date
- * - /api/prices?coinIds=bitcoin,ethereum&currencyCodes=usd,try&breakdown=coin,currency,date
+ * @param coinIds - Comma-separated coin IDs
+ * @param currencyCodes - Comma-separated currency codes
+ * @param dateFrom - Start date (YYYY-MM-DD)
+ * @param dateTo - End date (YYYY-MM-DD)
+ * @param breakdown - Comma-separated dimensions (coin, currency, date)
+ * @param granularity - "daily" or "hourly" (defaults based on range)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -77,14 +69,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Determine granularity
-    // Auto-switch to hourly if date range is 2 days or less
+    // Determine granularity: hourly for short ranges, daily for longer
     let granularity: Granularity;
     if (granularityParam) {
       granularity = granularityParam as Granularity;
     } else {
       const daysDiff = moment(dateTo).diff(moment(dateFrom), "days");
-      granularity = daysDiff <= 2 ? "hourly" : "daily";
+      granularity = daysDiff <= 7 ? "hourly" : "daily";
     }
 
     logger.info("Fetching prices", {
@@ -96,7 +87,7 @@ export async function GET(request: NextRequest) {
       breakdown,
     });
 
-    // Fetch and aggregate prices using service
+    // Fetch and aggregate prices
     const prices = await priceService.getPrices({
       coinIds,
       currencyCodes,

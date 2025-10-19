@@ -34,6 +34,7 @@ model Currency {
   @@map("currencies")
 }
 
+// Daily aggregated prices - one record per coin/currency/day
 model PriceDaily {
   id           Int      @id @default(autoincrement())
   coinId       String   @map("coin_id") @db.VarChar(50)
@@ -51,6 +52,7 @@ model PriceDaily {
   @@map("prices_daily")
 }
 
+// Hourly/granular prices - raw data from CoinGecko
 model PriceHourly {
   id           Int      @id @default(autoincrement())
   coinId       String   @map("coin_id") @db.VarChar(50)

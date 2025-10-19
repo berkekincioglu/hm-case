@@ -1,11 +1,13 @@
-import { coinGeckoService } from "../coingecko/coingecko.service";
+import moment from "moment";
+
+import { logger } from "@/lib/utils/logger";
+
 import { coinService } from "../coin/coin.service";
+import { coinGeckoService } from "../coingecko/coingecko.service";
+import type { MarketChartRange } from "../coingecko/coingecko.types";
 import { currencyService } from "../currency/currency.service";
 import { priceRepository } from "../price/price.repository";
-import { MarketChartRange } from "../coingecko/coingecko.types";
-import { logger } from "@/lib/utils/logger";
-import moment from "moment";
-import {
+import type {
   CreatePriceDailyDto,
   CreatePriceHourlyDto,
 } from "../price/price.types";
@@ -37,22 +39,15 @@ const CURRENCIES = [
 class DataFetcherService {
   /**
    * Clean existing price data from database
-   * Prevents duplicate data on re-runs
    */
   async cleanExistingData(): Promise<void> {
     try {
       logger.info("Cleaning existing price data...");
 
-      const { prisma } = await import("@/lib/db/prisma");
-
-      // Delete all price data (cascading will handle relations)
-      const [dailyCount, hourlyCount] = await Promise.all([
-        prisma.priceDaily.deleteMany({}),
-        prisma.priceHourly.deleteMany({}),
-      ]);
+      const result = await priceRepository.deleteAll();
 
       logger.success(
-        `Cleaned ${dailyCount.count} daily and ${hourlyCount.count} hourly price records`
+        `Cleaned ${result.daily} daily and ${result.hourly} hourly price records`
       );
     } catch (error) {
       logger.error("Failed to clean existing data", error);
@@ -82,38 +77,21 @@ class DataFetcherService {
 
   /**
    * Fetch and store historical price data
-   * Date range: Last 90 days (flexible for testing in Oct/Nov/Dec)
-   * Currently: July 20, 2025 - October 18, 2025
-   * IMPORTANT NOTE : CoinGecko demo API key does not support historical data within past 365 days.
-   * ERROR MESSAGE Public API users are limited to querying historical data within the past 365 days.
-   * Upgrade to a paid plan to enjoy full historical data access: https://www.coingecko.com/en/api/pricing
+   * - Hourly data: Last 30 days (CoinGecko provides ~5min intervals)
+   * - Daily data: Last 365 days (CoinGecko provides daily aggregates)
    */
   async fetchHistoricalPrices(): Promise<void> {
     try {
-      // Last 90 days from today
-      const to = moment().endOf("day").unix(); // Today
-      const from = moment().subtract(90, "days").startOf("day").unix(); // 90 days ago
-
-      logger.info("Starting historical price data fetch...", {
-        from: moment.unix(from).format("YYYY-MM-DD"),
-        to: moment.unix(to).format("YYYY-MM-DD"),
-        coins: MAJOR_COINS.length,
-        currencies: CURRENCIES.length,
-      });
+      logger.info("Starting historical price data fetch...");
 
       const coinIds = MAJOR_COINS.map((c) => c.id);
       const currencyCodes = CURRENCIES.map((c) => c.code);
 
-      // Fetch data from CoinGecko
-      const marketData = await coinGeckoService.batchFetchMarketData(
-        coinIds,
-        currencyCodes,
-        from,
-        to
-      );
+      // Fetch hourly data (last 30 days - CoinGecko returns ~5min intervals)
+      await this.fetchHourlyPrices(coinIds, currencyCodes);
 
-      // Process and store data
-      await this.processAndStoreData(marketData);
+      // Fetch daily data (last 365 days - CoinGecko returns daily aggregates)
+      await this.fetchDailyPrices(coinIds, currencyCodes);
 
       logger.success("Historical price data fetch completed");
     } catch (error) {
@@ -123,72 +101,69 @@ class DataFetcherService {
   }
 
   /**
-   * Process market data and store in database
+   * Fetch hourly/fine-grained price data for recent period
+   * Uses /market_chart endpoint with days=30 for ~5min interval data
    */
-  private async processAndStoreData(
+  private async fetchHourlyPrices(
+    coinIds: string[],
+    currencyCodes: string[]
+  ): Promise<void> {
+    logger.info("Fetching hourly prices (last 30 days)...");
+
+    const marketData = await coinGeckoService.batchFetchMarketDataByDays(
+      coinIds,
+      currencyCodes,
+      30 // Last 30 days - CoinGecko returns ~5min intervals
+    );
+
+    await this.storeHourlyData(marketData);
+  }
+
+  /**
+   * Fetch daily aggregated price data for longer period
+   * Uses /market_chart endpoint with days=365 for daily data
+   */
+  private async fetchDailyPrices(
+    coinIds: string[],
+    currencyCodes: string[]
+  ): Promise<void> {
+    logger.info("Fetching daily prices (last 365 days)...");
+
+    const marketData = await coinGeckoService.batchFetchMarketDataByDays(
+      coinIds,
+      currencyCodes,
+      365 // Last 365 days - CoinGecko returns daily intervals
+    );
+
+    await this.storeDailyData(marketData);
+  }
+
+  /**
+   * Store raw hourly/fine-grained data
+   */
+  private async storeHourlyData(
     marketData: Map<string, Map<string, MarketChartRange>>
   ): Promise<void> {
-    const dailyPrices: CreatePriceDailyDto[] = [];
     const hourlyPrices: CreatePriceHourlyDto[] = [];
 
     marketData.forEach((currencyMap, coinId) => {
       currencyMap.forEach((data, currencyCode) => {
         if (!data || !data.prices) return;
 
-        // Group prices by day for daily averages
-        const dailyGroups = new Map<string, number[]>();
-
         data.prices.forEach(([timestamp, price]: [number, number]) => {
-          const date = moment(timestamp);
-          const dayKey = date.format("YYYY-MM-DD");
-
-          // Store for hourly data
           hourlyPrices.push({
             coinId,
             currencyCode: currencyCode.toLowerCase(),
-            timestamp: date.toDate(),
+            timestamp: moment(timestamp).toDate(),
             price,
-          });
-
-          // Group for daily averages
-          if (!dailyGroups.has(dayKey)) {
-            dailyGroups.set(dayKey, []);
-          }
-          dailyGroups.get(dayKey)!.push(price);
-        });
-
-        // Calculate daily averages
-        dailyGroups.forEach((prices, dayKey) => {
-          const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-          dailyPrices.push({
-            coinId,
-            currencyCode: currencyCode.toLowerCase(),
-            date: moment(dayKey).toDate(),
-            price: avgPrice,
           });
         });
       });
     });
 
-    // Store in database in batches
     const BATCH_SIZE = 500;
+    logger.info(`Storing ${hourlyPrices.length} hourly prices`);
 
-    logger.info(
-      `Storing ${dailyPrices.length} daily prices and ${hourlyPrices.length} hourly prices`
-    );
-
-    // Store daily prices in batches
-    for (let i = 0; i < dailyPrices.length; i += BATCH_SIZE) {
-      const batch = dailyPrices.slice(i, i + BATCH_SIZE);
-      await priceRepository.createManyDaily(batch);
-      logger.info(
-        `Stored daily batch ${i / BATCH_SIZE + 1}/${Math.ceil(
-          dailyPrices.length / BATCH_SIZE
-        )}`
-      );
-    }
-
-    // Store hourly prices in batches
     for (let i = 0; i < hourlyPrices.length; i += BATCH_SIZE) {
       const batch = hourlyPrices.slice(i, i + BATCH_SIZE);
       await priceRepository.createManyHourly(batch);
@@ -199,7 +174,49 @@ class DataFetcherService {
       );
     }
 
-    logger.success("All price data stored successfully");
+    logger.success(`Stored ${hourlyPrices.length} hourly prices`);
+  }
+
+  /**
+   * Store daily aggregated data
+   * For 365 days, CoinGecko already returns daily data, so we store it directly
+   */
+  private async storeDailyData(
+    marketData: Map<string, Map<string, MarketChartRange>>
+  ): Promise<void> {
+    const dailyPrices: CreatePriceDailyDto[] = [];
+
+    marketData.forEach((currencyMap, coinId) => {
+      currencyMap.forEach((data, currencyCode) => {
+        if (!data || !data.prices) return;
+
+        // For 365 days, CoinGecko returns daily data
+        // Each data point represents the average for that day
+        data.prices.forEach(([timestamp, price]: [number, number]) => {
+          dailyPrices.push({
+            coinId,
+            currencyCode: currencyCode.toLowerCase(),
+            date: moment(timestamp).startOf("day").toDate(),
+            price,
+          });
+        });
+      });
+    });
+
+    const BATCH_SIZE = 500;
+    logger.info(`Storing ${dailyPrices.length} daily prices`);
+
+    for (let i = 0; i < dailyPrices.length; i += BATCH_SIZE) {
+      const batch = dailyPrices.slice(i, i + BATCH_SIZE);
+      await priceRepository.createManyDaily(batch);
+      logger.info(
+        `Stored daily batch ${i / BATCH_SIZE + 1}/${Math.ceil(
+          dailyPrices.length / BATCH_SIZE
+        )}`
+      );
+    }
+
+    logger.success(`Stored ${dailyPrices.length} daily prices`);
   }
 
   /**
