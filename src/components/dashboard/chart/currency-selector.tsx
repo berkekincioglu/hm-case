@@ -52,15 +52,17 @@ export function CurrencySelector({
   const displayText = (() => {
     if (selectedCurrencies.length === 0) return "Select currencies...";
 
-    const first2 = selectedCurrencies.slice(0, 2).map((code) => {
-      return `${getCurrencySymbol(code)} ${code.toUpperCase()}`;
-    });
+    const firstTwoSelectedCurrencies = selectedCurrencies
+      .slice(0, 2)
+      .map((code) => {
+        return `${getCurrencySymbol(code)} ${code.toUpperCase()}`;
+      });
 
     if (selectedCurrencies.length > 2) {
-      return `${first2.join(", ")}, ...`;
+      return `${firstTwoSelectedCurrencies.join(", ")}, ...`;
     }
 
-    return first2.join(", ");
+    return firstTwoSelectedCurrencies.join(", ");
   })();
 
   return (

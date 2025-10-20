@@ -1,3 +1,5 @@
+import moment from "moment";
+
 import type { TimeRange } from "@/contexts/chart-context";
 
 /**
@@ -41,3 +43,37 @@ export function calculateActiveTimeRange(
   if (diffInDays < 360) return "3m";
   return "1y";
 }
+
+export const calculateDatesFromTimeRange = (
+  range: TimeRange
+): { from: Date; to: Date } => {
+  const to = moment().toDate();
+  let from: Date;
+
+  switch (range) {
+    case "1h":
+      // Keep for backwards compatibility but not shown in UI
+      from = moment().subtract(12, "hours").startOf("hour").toDate();
+      break;
+    case "1d":
+      // 1D view: last 1 day (will show hourly view since ≤2 days)
+      from = moment().subtract(1, "day").startOf("day").toDate();
+      break;
+    case "1w":
+      from = moment().subtract(7, "days").startOf("day").toDate();
+      break;
+    case "1m":
+      from = moment().subtract(30, "days").startOf("day").toDate();
+      break;
+    case "3m":
+      from = moment().subtract(90, "days").startOf("day").toDate();
+      break;
+    case "1y":
+      from = moment().subtract(365, "days").startOf("day").toDate();
+      break;
+    default:
+      from = moment().subtract(30, "days").startOf("day").toDate();
+  }
+
+  return { from, to };
+};

@@ -37,16 +37,16 @@ export function CoinSelector({
   const selectedCoinsDisplay = (() => {
     if (selectedCoins.length === 0) return "Select coins...";
 
-    const first2 = selectedCoins.slice(0, 2).map((coinId) => {
+    const firstTwoSelectedCoins = selectedCoins.slice(0, 2).map((coinId) => {
       const coin = coins.find((c) => c.id === coinId);
       return coin?.symbol.toUpperCase() || coinId.toUpperCase();
     });
 
     if (selectedCoins.length > 2) {
-      return `${first2.join(", ")}, ...`;
+      return `${firstTwoSelectedCoins.join(", ")}, ...`;
     }
 
-    return first2.join(", ");
+    return firstTwoSelectedCoins.join(", ");
   })();
 
   const toggleCoin = (coinId: string) => {

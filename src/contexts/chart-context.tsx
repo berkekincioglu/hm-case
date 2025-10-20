@@ -4,6 +4,8 @@ import moment from "moment";
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
+import { calculateDatesFromTimeRange } from "@/lib/utils/time-range-utils";
+
 export type TimeRange = "1h" | "1d" | "1w" | "1m" | "3m" | "1y";
 export type BreakdownDimension = "coin" | "currency" | "date";
 
@@ -53,40 +55,6 @@ export function ChartProvider({ children }: { children: ReactNode }) {
     moment().subtract(30, "days").startOf("day").toDate()
   );
   const [dateTo, setDateTo] = useState<Date>(moment().endOf("day").toDate());
-
-  const calculateDatesFromTimeRange = (
-    range: TimeRange
-  ): { from: Date; to: Date } => {
-    const to = moment().toDate();
-    let from: Date;
-
-    switch (range) {
-      case "1h":
-        // Keep for backwards compatibility but not shown in UI
-        from = moment().subtract(12, "hours").startOf("hour").toDate();
-        break;
-      case "1d":
-        // 1D view: last 1 day (will show hourly view since ≤2 days)
-        from = moment().subtract(1, "day").startOf("day").toDate();
-        break;
-      case "1w":
-        from = moment().subtract(7, "days").startOf("day").toDate();
-        break;
-      case "1m":
-        from = moment().subtract(30, "days").startOf("day").toDate();
-        break;
-      case "3m":
-        from = moment().subtract(90, "days").startOf("day").toDate();
-        break;
-      case "1y":
-        from = moment().subtract(365, "days").startOf("day").toDate();
-        break;
-      default:
-        from = moment().subtract(30, "days").startOf("day").toDate();
-    }
-
-    return { from, to };
-  };
 
   const updateCurrencies = (currencies: string[]) => {
     setSelectedCurrencies(currencies);
