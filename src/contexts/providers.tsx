@@ -5,7 +5,6 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ChartProvider } from "@/contexts/chart-context";
 import { DashboardProvider } from "@/contexts/dashboard-context";
@@ -34,10 +33,7 @@ export function Providers({ children }: ProvidersProps) {
       <ThemeProvider>
         <AuthProvider>
           <ChartProvider>
-            <DashboardProvider>
-              {children}
-              <ThemeToggle />
-            </DashboardProvider>
+            <DashboardProvider>{children}</DashboardProvider>
           </ChartProvider>
         </AuthProvider>
       </ThemeProvider>

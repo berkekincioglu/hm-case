@@ -1,7 +1,8 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+
 import { dataFetcherService } from "@/lib/modules/data-fetcher/data-fetcher.service";
-import { ApiResponse } from "@/lib/utils/response";
 import { logger } from "@/lib/utils/logger";
+import { ApiResponse } from "@/lib/utils/response";
 
 /**
  * POST /api/cron/fetch-data
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (providedSecret !== expectedSecret) {
       logger.warn("Unauthorized cron job attempt", {
-        providedSecret: providedSecret?.substring(0, 8) + "...",
+        providedSecret: `${providedSecret?.substring(0, 8)}...`,
         ip: request.headers.get("x-forwarded-for") || "unknown",
       });
       return ApiResponse.error("Unauthorized", 401);

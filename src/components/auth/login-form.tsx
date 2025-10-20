@@ -60,12 +60,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">
-          Crypto Dashboard Login
-        </CardTitle>
-        <CardDescription>
-          Enter your credentials to access the dashboard
-        </CardDescription>
+        <CardTitle className="text-2xl font-bold">Login</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>

@@ -31,7 +31,7 @@ import { CustomChartTooltip } from "./custom-chart-tooltip";
 
 export function PriceChart() {
   const { filters, setZoomRange } = useChart();
-  const { dateFrom, dateTo } = filters;
+  const { dateFrom, dateTo, breakdown } = filters;
 
   // Calculate days difference to determine granularity
   const daysDiff = Math.abs(
@@ -46,8 +46,12 @@ export function PriceChart() {
 
   const chartData = useMemo(() => {
     if (!response?.data) return [];
-    return transformPriceDataForChart(response.data.data, granularity, true); // true = single currency mode
-  }, [response, granularity]);
+    return transformPriceDataForChart(
+      response.data.data,
+      granularity,
+      breakdown
+    );
+  }, [response, granularity, breakdown]);
 
   const seriesKeys = useMemo(() => getSeriesKeys(chartData), [chartData]);
 
@@ -109,8 +113,16 @@ export function PriceChart() {
         const rightDate = new Date(refAreaRight);
 
         // Ensure left is before right
-        const from = leftDate < rightDate ? leftDate : rightDate;
-        const to = leftDate < rightDate ? rightDate : leftDate;
+        let from = leftDate < rightDate ? leftDate : rightDate;
+        let to = leftDate < rightDate ? rightDate : leftDate;
+
+        // For hourly data, keep the exact times
+        // For daily data, expand to full day range
+        if (granularity === "daily") {
+          // Set from to start of day, to to end of day
+          from = new Date(from.setHours(0, 0, 0, 0));
+          to = new Date(to.setHours(23, 59, 59, 999));
+        }
 
         // Only apply zoom if the dates are valid and different
         if (
@@ -187,6 +199,7 @@ export function PriceChart() {
           <YAxis
             className="text-xs"
             tickFormatter={(value) => formatPrice(value)}
+            width={80}
           />
           <Tooltip content={<CustomChartTooltip granularity={granularity} />} />
           {seriesKeys.map((key, index) => (

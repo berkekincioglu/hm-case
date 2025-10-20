@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       granularity = granularityParam as Granularity;
     } else {
       const daysDiff = moment(dateTo).diff(moment(dateFrom), "days");
-      granularity = daysDiff <= 7 ? "hourly" : "daily";
+      granularity = daysDiff <= 2 ? "hourly" : "daily";
     }
 
     logger.info("Fetching prices", {

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
-import { CreateCoinDto, CoinEntity, CoinWithMetadata } from "./coin.types";
 import { logger } from "@/lib/utils/logger";
+
+import type { CreateCoinDto, CoinEntity, CoinWithMetadata } from "./coin.types";
 
 class CoinRepository {
   /**

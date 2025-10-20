@@ -4,7 +4,7 @@ import { logger } from "@/lib/utils/logger";
 
 import { coinService } from "../coin/coin.service";
 import { coinGeckoService } from "../coingecko/coingecko.service";
-import type { MarketChartRange } from "../coingecko/coingecko.types";
+import type { MarketDataCollection } from "../coingecko/coingecko.types";
 import { currencyService } from "../currency/currency.service";
 import { priceRepository } from "../price/price.repository";
 import type {
@@ -79,6 +79,23 @@ class DataFetcherService {
    * Fetch and store historical price data
    * - Hourly data: Last 30 days (CoinGecko provides ~5min intervals)
    * - Daily data: Last 365 days (CoinGecko provides daily aggregates)
+   *
+   * Why 30 days hourly vs 365 days daily?
+    This is about data granularity vs storage efficiency:
+
+    Hourly Data (30 days):
+
+    CoinGecko returns ~5-minute intervals when you request ≤30 days
+    30 days × 24 hours × 12 (5-min intervals per hour) = ~8,640 data points per coin/currency
+    For 11 coins × 4 currencies = ~380,160 total records
+    Purpose: High-precision data for recent/short-term analysis (1 day, 1 week views)
+    Storing 365 days of 5-minute data would be: ~4,562,400 records (too much!)
+    Daily Data (365 days):
+
+    CoinGecko returns 1 data point per day when you request >90 days
+    365 days = 365 data points per coin/currency
+    For 11 coins × 4 currencies = ~16,060 total records
+    Purpose: Historical trends for long-term analysis (1 month, 3 months, 1 year views)
    */
   async fetchHistoricalPrices(): Promise<void> {
     try {
@@ -142,13 +159,15 @@ class DataFetcherService {
    * Store raw hourly/fine-grained data
    */
   private async storeHourlyData(
-    marketData: Map<string, Map<string, MarketChartRange>>
+    marketData: MarketDataCollection
   ): Promise<void> {
     const hourlyPrices: CreatePriceHourlyDto[] = [];
 
-    marketData.forEach((currencyMap, coinId) => {
-      currencyMap.forEach((data, currencyCode) => {
-        if (!data || !data.prices) return;
+    // Iterate through coins
+    for (const [coinId, currencyMap] of Object.entries(marketData)) {
+      // Iterate through currencies for this coin
+      for (const [currencyCode, data] of Object.entries(currencyMap)) {
+        if (!data || !data.prices) continue;
 
         data.prices.forEach(([timestamp, price]: [number, number]) => {
           hourlyPrices.push({
@@ -158,8 +177,8 @@ class DataFetcherService {
             price,
           });
         });
-      });
-    });
+      }
+    }
 
     const BATCH_SIZE = 500;
     logger.info(`Storing ${hourlyPrices.length} hourly prices`);
@@ -182,13 +201,15 @@ class DataFetcherService {
    * For 365 days, CoinGecko already returns daily data, so we store it directly
    */
   private async storeDailyData(
-    marketData: Map<string, Map<string, MarketChartRange>>
+    marketData: MarketDataCollection
   ): Promise<void> {
     const dailyPrices: CreatePriceDailyDto[] = [];
 
-    marketData.forEach((currencyMap, coinId) => {
-      currencyMap.forEach((data, currencyCode) => {
-        if (!data || !data.prices) return;
+    // Iterate through coins
+    for (const [coinId, currencyMap] of Object.entries(marketData)) {
+      // Iterate through currencies for this coin
+      for (const [currencyCode, data] of Object.entries(currencyMap)) {
+        if (!data || !data.prices) continue;
 
         // For 365 days, CoinGecko returns daily data
         // Each data point represents the average for that day
@@ -200,8 +221,8 @@ class DataFetcherService {
             price,
           });
         });
-      });
-    });
+      }
+    }
 
     const BATCH_SIZE = 500;
     logger.info(`Storing ${dailyPrices.length} daily prices`);

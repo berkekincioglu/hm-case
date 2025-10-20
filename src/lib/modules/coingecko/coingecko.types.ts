@@ -198,3 +198,44 @@ export interface FetchPriceParams {
   from: number; // Start date as Unix timestamp in SECONDS
   to: number; // End date as Unix timestamp in SECONDS
 }
+
+/**
+ * Market Data Collection
+ *
+ * Structured representation of fetched market data for multiple coins and currencies
+ *
+ * STRUCTURE:
+ * A nested map where:
+ * - First level key: coinId (e.g., "bitcoin", "ethereum")
+ * - Second level key: currencyCode (e.g., "usd", "eur")
+ * - Value: MarketChartRange (price data with timestamps)
+ *
+ * EXAMPLE:
+ * {
+ *   "bitcoin": {
+ *     "usd": { prices: [[timestamp1, price1], ...], market_caps: [...], total_volumes: [...] },
+ *     "eur": { prices: [[timestamp1, price1], ...], market_caps: [...], total_volumes: [...] }
+ *   },
+ *   "ethereum": {
+ *     "usd": { prices: [[timestamp1, price1], ...], market_caps: [...], total_volumes: [...] },
+ *     "eur": { prices: [[timestamp1, price1], ...], market_caps: [...], total_volumes: [...] }
+ *   }
+ * }
+ *
+ * WHY THIS STRUCTURE?
+ * - Organized by coin first, then currency
+ * - Easy to iterate through all coins and currencies
+ * - Natural structure for batch operations
+ * - Type-safe access: marketData.get("bitcoin")?.get("usd")?.prices
+ *
+ * USAGE:
+ * Used as return type from batchFetchMarketDataByDays() and passed to
+ * storeHourlyData() and storeDailyData() methods
+ */
+export interface MarketDataCollection {
+  // Map of coinId to currency data
+  [coinId: string]: {
+    // Map of currencyCode to market chart data
+    [currencyCode: string]: MarketChartRange;
+  };
+}

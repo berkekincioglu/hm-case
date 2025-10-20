@@ -9,16 +9,23 @@ export interface ChartDataPoint {
 
 /**
  * Transform API price data into chart-friendly format
+ * Handles different breakdown combinations dynamically
  */
 export function transformPriceDataForChart(
   data: PriceData[],
   _granularity: "daily" | "hourly",
-  singleCurrency: boolean = false
+  breakdown: string[] = ["date", "coin"]
 ): ChartDataPoint[] {
   const grouped = new Map<string, Record<string, number>>();
 
+  // Determine if we need to show coin, currency, or both in series keys
+  const showCoin = breakdown.includes("coin");
+  const showCurrency = breakdown.includes("currency");
+  const showDate = breakdown.includes("date");
+
   data.forEach((item) => {
-    const dateKey = item.date || "";
+    // Use date as grouping key if date is in breakdown, otherwise use a constant
+    const dateKey = showDate ? item.date || "" : "all";
 
     if (!grouped.has(dateKey)) {
       grouped.set(dateKey, {});
@@ -26,15 +33,26 @@ export function transformPriceDataForChart(
 
     const group = grouped.get(dateKey)!;
 
-    const seriesKey =
-      singleCurrency && item.coin
-        ? item.coin.toUpperCase()
-        : [item.coin, item.currency]
-            .filter(Boolean)
-            .map((v) => v?.toUpperCase())
-            .join("-") || "Price";
+    // Build series key based on breakdown dimensions
+    const keyParts: string[] = [];
+    if (showCoin && item.coin) {
+      keyParts.push(item.coin.toUpperCase());
+    }
+    if (showCurrency && item.currency) {
+      keyParts.push(item.currency.toUpperCase());
+    }
 
-    group[seriesKey] = item.price;
+    // If only date is selected, show as "Average Price"
+    const seriesKey =
+      keyParts.length > 0 ? keyParts.join("-") : "Average Price";
+
+    // If multiple data points map to same series (e.g., only date breakdown with multiple coins)
+    // we average them (already aggregated by backend, but handle edge cases)
+    if (group[seriesKey]) {
+      group[seriesKey] = (group[seriesKey] + item.price) / 2;
+    } else {
+      group[seriesKey] = item.price;
+    }
   });
 
   const result: ChartDataPoint[] = Array.from(grouped.entries()).map(
@@ -44,9 +62,12 @@ export function transformPriceDataForChart(
     })
   );
 
-  result.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  // Sort by date if date is in breakdown
+  if (showDate) {
+    result.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }
 
   return result;
 }
@@ -94,13 +115,27 @@ export function getSeriesColor(index: number): string {
  * Format price with comma separators and appropriate decimals
  */
 export function formatPrice(price: number): string {
+  if (price === 0) return "0";
+
+  // For very large numbers (over 1M), use compact notation
+  if (price >= 1000000) {
+    return `${(price / 1000000).toFixed(2)}M`;
+  }
+
+  // For large numbers (over 100K), use K notation
+  if (price >= 100000) {
+    return `${(price / 1000).toFixed(1)}K`;
+  }
+
+  // For numbers over 1000, show with commas and 2 decimals
   if (price >= 1000) {
     return price.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     });
   }
 
+  // For numbers >= 1, show 2-4 decimals
   if (price >= 1) {
     return price.toLocaleString("en-US", {
       minimumFractionDigits: 2,
@@ -108,8 +143,49 @@ export function formatPrice(price: number): string {
     });
   }
 
-  return price.toLocaleString("en-US", {
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 8,
-  });
+  // For small numbers < 1, show significant digits
+  if (price >= 0.01) {
+    return price.toFixed(4);
+  }
+
+  if (price >= 0.0001) {
+    return price.toFixed(6);
+  }
+
+  // For very small numbers, use exponential notation
+  return price.toExponential(2);
+}
+
+/**
+ * Format price for tooltip with full precision
+ */
+export function formatPriceTooltip(price: number): string {
+  if (price === 0) return "0";
+
+  // For large numbers, show full value with commas
+  if (price >= 1000) {
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  // For numbers >= 1, show up to 4 decimals
+  if (price >= 1) {
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
+  }
+
+  // For small numbers < 1, show up to 8 decimals
+  if (price >= 0.00000001) {
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 8,
+    });
+  }
+
+  // For extremely small numbers, use exponential
+  return price.toExponential(4);
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { formatChartDate, formatPrice } from "@/lib/utils/chart-utils";
+import { formatChartDate, formatPriceTooltip } from "@/lib/utils/chart-utils";
 
 interface CustomChartTooltipPayloadEntry {
   name: string;
@@ -37,13 +36,13 @@ export function CustomChartTooltip({
           <div key={index} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div
-                className={`h-2.5 w-2.5 rounded-full`}
+                className="h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-xs font-medium">{entry.name}</span>
             </div>
             <span className="text-xs font-semibold tabular-nums">
-              {formatPrice(entry.value)}
+              {formatPriceTooltip(entry.value)}
             </span>
           </div>
         ))}

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
-import { ApiResponse } from "@/lib/utils/response";
 import { logger } from "@/lib/utils/logger";
+import { ApiResponse } from "@/lib/utils/response";
 
 export async function GET() {
   try {

@@ -33,12 +33,21 @@ export function CoinSelector({
   const { data: coinsData } = useCoins();
   const coins = coinsData?.data || [];
 
-  const selectedCoinsDisplay =
-    selectedCoins.length === 0
-      ? "Select coins..."
-      : `${selectedCoins.length} coin${
-          selectedCoins.length === 1 ? "" : "s"
-        } selected`;
+  // Display coin symbols + names (e.g., "BTC Bitcoin, ETH Ethereum" or "BTC, ETH, ...")
+  const selectedCoinsDisplay = (() => {
+    if (selectedCoins.length === 0) return "Select coins...";
+
+    const first2 = selectedCoins.slice(0, 2).map((coinId) => {
+      const coin = coins.find((c) => c.id === coinId);
+      return coin?.symbol.toUpperCase() || coinId.toUpperCase();
+    });
+
+    if (selectedCoins.length > 2) {
+      return `${first2.join(", ")}, ...`;
+    }
+
+    return first2.join(", ");
+  })();
 
   const toggleCoin = (coinId: string) => {
     if (selectedCoins.includes(coinId)) {
@@ -55,9 +64,9 @@ export function CoinSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[180px] justify-between"
+          className="w-full sm:w-auto justify-between min-w-[120px]"
         >
-          {selectedCoinsDisplay}
+          <span className="truncate">{selectedCoinsDisplay}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

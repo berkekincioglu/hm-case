@@ -22,23 +22,46 @@ import { cn } from "@/lib/utils";
 import { getCurrencySymbol } from "@/lib/utils/currency-utils";
 
 interface CurrencySelectorProps {
-  selectedCurrency: string;
-  onCurrencyChange: (currency: string) => void;
+  selectedCurrencies: string[]; // Changed to array
+  onCurrenciesChange: (currencies: string[]) => void; // Changed to array
 }
 
 export function CurrencySelector({
-  selectedCurrency,
-  onCurrencyChange,
+  selectedCurrencies,
+  onCurrenciesChange,
 }: CurrencySelectorProps) {
   const [open, setOpen] = useState(false);
   const { data: currenciesData } = useCurrencies();
   const currencies = currenciesData?.data || [];
 
-  const selectedCurrencyName =
-    currencies.find((c) => c.code === selectedCurrency)?.name ||
-    selectedCurrency.toUpperCase();
+  const handleSelect = (currencyCode: string) => {
+    if (selectedCurrencies.includes(currencyCode)) {
+      // Remove if already selected
+      const updated = selectedCurrencies.filter((c) => c !== currencyCode);
+      // Don't allow empty selection
+      if (updated.length > 0) {
+        onCurrenciesChange(updated);
+      }
+    } else {
+      // Add to selection
+      onCurrenciesChange([...selectedCurrencies, currencyCode]);
+    }
+  };
 
-  const selectedCurrencySymbol = getCurrencySymbol(selectedCurrency);
+  // Display currency symbols + names (e.g., "$ USD, € EUR" or "$ USD, € EUR, ...")
+  const displayText = (() => {
+    if (selectedCurrencies.length === 0) return "Select currencies...";
+
+    const first2 = selectedCurrencies.slice(0, 2).map((code) => {
+      return `${getCurrencySymbol(code)} ${code.toUpperCase()}`;
+    });
+
+    if (selectedCurrencies.length > 2) {
+      return `${first2.join(", ")}, ...`;
+    }
+
+    return first2.join(", ");
+  })();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,16 +70,13 @@ export function CurrencySelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[140px] justify-between"
+          className="w-full sm:w-auto justify-between min-w-[120px]"
         >
-          <span className="flex items-center gap-1.5">
-            <span className="font-semibold">{selectedCurrencySymbol}</span>
-            <span>{selectedCurrencyName}</span>
-          </span>
+          <span className="truncate">{displayText}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-full max-w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Search currency..." />
           <CommandList>
@@ -66,23 +86,23 @@ export function CurrencySelector({
                 <CommandItem
                   key={currency.code}
                   value={currency.code}
-                  onSelect={() => {
-                    onCurrencyChange(currency.code);
-                    setOpen(false);
-                  }}
+                  className="cursor-pointer"
+                  onSelect={() => handleSelect(currency.code)}
                 >
+                  <span className="flex-1 flex items-center">
+                    <span className="font-semibold mr-1.5">
+                      {getCurrencySymbol(currency.code)}
+                    </span>
+                    {currency.code.toUpperCase()} - {currency.name}
+                  </span>
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedCurrency === currency.code
+                      "ml-2 h-4 w-4 flex-shrink-0",
+                      selectedCurrencies.includes(currency.code)
                         ? "opacity-100"
                         : "opacity-0"
                     )}
                   />
-                  <span className="font-semibold mr-1.5">
-                    {getCurrencySymbol(currency.code)}
-                  </span>
-                  {currency.code.toUpperCase()} - {currency.name}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -8,6 +8,7 @@ import type {
   MarketChartRange,
   CoinDetail,
   FetchPriceParams,
+  MarketDataCollection,
 } from "./coingecko.types";
 
 class CoinGeckoService {
@@ -199,11 +200,11 @@ class CoinGeckoService {
     coinIds: string[],
     currencies: string[],
     days: number
-  ): Promise<Map<string, Map<string, MarketChartRange>>> {
-    const results = new Map<string, Map<string, MarketChartRange>>();
+  ): Promise<MarketDataCollection> {
+    const results: MarketDataCollection = {};
 
     for (const coinId of coinIds) {
-      const coinResults = new Map<string, MarketChartRange>();
+      results[coinId] = {};
 
       for (const currency of currencies) {
         try {
@@ -212,7 +213,7 @@ class CoinGeckoService {
             currency,
             days,
           });
-          coinResults.set(currency, data);
+          results[coinId][currency] = data;
           logger.success(`Fetched ${coinId}/${currency.toUpperCase()}`);
         } catch (error) {
           logger.error(
@@ -221,8 +222,6 @@ class CoinGeckoService {
           );
         }
       }
-
-      results.set(coinId, coinResults);
     }
 
     return results;

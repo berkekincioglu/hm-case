@@ -5,10 +5,12 @@ import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 
 export type TimeRange = "1h" | "1d" | "1w" | "1m" | "3m" | "1y";
+export type BreakdownDimension = "coin" | "currency" | "date";
 
 interface ChartFilters {
-  selectedCurrency: string;
+  selectedCurrencies: string[]; // Changed from single to array
   selectedCoins: string[];
+  breakdown: BreakdownDimension[]; // New: breakdown dimensions
   timeRange: TimeRange;
   dateFrom: Date;
   dateTo: Date;
@@ -18,8 +20,9 @@ interface ChartFilters {
 
 interface ChartContextType {
   filters: ChartFilters;
-  updateCurrency: (currency: string) => void;
+  updateCurrencies: (currencies: string[]) => void; // Changed from updateCurrency
   updateCoins: (coins: string[]) => void;
+  updateBreakdown: (breakdown: BreakdownDimension[]) => void; // New
   setTimeRange: (range: TimeRange) => void;
   setZoomRange: (from: Date, to: Date) => void;
   resetZoom: () => void;
@@ -28,12 +31,20 @@ interface ChartContextType {
 const ChartContext = createContext<ChartContextType | undefined>(undefined);
 
 export function ChartProvider({ children }: { children: ReactNode }) {
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("usd");
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([
+    "usd",
+    "try",
+  ]); // Default: USD, TRY
   const [selectedCoins, setSelectedCoins] = useState<string[]>([
     "bitcoin",
     "ethereum",
     "dogecoin",
   ]);
+  const [breakdown, setBreakdown] = useState<BreakdownDimension[]>([
+    "date",
+    "coin",
+    "currency",
+  ]); // Default breakdown
   const [timeRange, setTimeRangeState] = useState<TimeRange>("1m"); // Default to 1 month
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -77,12 +88,16 @@ export function ChartProvider({ children }: { children: ReactNode }) {
     return { from, to };
   };
 
-  const updateCurrency = (currency: string) => {
-    setSelectedCurrency(currency);
+  const updateCurrencies = (currencies: string[]) => {
+    setSelectedCurrencies(currencies);
   };
 
   const updateCoins = (coins: string[]) => {
     setSelectedCoins(coins);
+  };
+
+  const updateBreakdown = (newBreakdown: BreakdownDimension[]) => {
+    setBreakdown(newBreakdown);
   };
 
   const setTimeRange = (range: TimeRange) => {
@@ -94,8 +109,13 @@ export function ChartProvider({ children }: { children: ReactNode }) {
   };
 
   const setZoomRange = (from: Date, to: Date) => {
-    setDateFrom(from);
-    setDateTo(to);
+    // Ensure dates are properly formatted
+    // For daily data, ensure we capture the full day range
+    const fromDate = moment(from).startOf("day").toDate();
+    const toDate = moment(to).endOf("day").toDate();
+
+    setDateFrom(fromDate);
+    setDateTo(toDate);
     setIsZoomed(true);
     // Keep timeRange as-is, but isZoomed=true will deselect buttons visually
   };
@@ -108,8 +128,9 @@ export function ChartProvider({ children }: { children: ReactNode }) {
   };
 
   const filters: ChartFilters = {
-    selectedCurrency,
+    selectedCurrencies,
     selectedCoins,
+    breakdown,
     timeRange,
     dateFrom,
     dateTo,
@@ -121,8 +142,9 @@ export function ChartProvider({ children }: { children: ReactNode }) {
     <ChartContext.Provider
       value={{
         filters,
-        updateCurrency,
+        updateCurrencies,
         updateCoins,
+        updateBreakdown,
         setTimeRange,
         setZoomRange,
         resetZoom,

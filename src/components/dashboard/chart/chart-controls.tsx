@@ -12,6 +12,7 @@ import { useChart } from "@/contexts/chart-context";
 import type { TimeRange } from "@/contexts/chart-context";
 import { calculateActiveTimeRange } from "@/lib/utils/time-range-utils";
 
+import { BreakdownSelector } from "./breakdown-selector";
 import { CoinSelector } from "./coin-selector";
 import { CurrencySelector } from "./currency-selector";
 import { SelectedCoinCards } from "./selected-coin-cards";
@@ -26,8 +27,14 @@ const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
 ];
 
 export function ChartControls() {
-  const { filters, updateCurrency, updateCoins, setTimeRange, resetZoom } =
-    useChart();
+  const {
+    filters,
+    updateCurrencies,
+    updateCoins,
+    updateBreakdown,
+    setTimeRange,
+    resetZoom,
+  } = useChart();
 
   // Calculate which button should be active based on actual date range
   const activeTimeRange = calculateActiveTimeRange(
@@ -41,68 +48,74 @@ export function ChartControls() {
 
   return (
     <div className="space-y-3">
-      {/* Controls Row */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-        {/* Selectors Group */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-1 min-w-0">
-          <div className="w-full sm:w-auto sm:min-w-[140px]">
-            <CurrencySelector
-              selectedCurrency={filters.selectedCurrency}
-              onCurrencyChange={updateCurrency}
-            />
-          </div>
-
-          <div className="w-full sm:w-auto sm:min-w-[160px]">
-            <CoinSelector
-              selectedCoins={filters.selectedCoins}
-              onCoinsChange={updateCoins}
-            />
-          </div>
+      {/* First Row: All Controls with justify-between */}
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 justify-between">
+        {/* Left Group: Currency and Coin Selectors */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <CurrencySelector
+            selectedCurrencies={filters.selectedCurrencies}
+            onCurrenciesChange={updateCurrencies}
+          />
+          <CoinSelector
+            selectedCoins={filters.selectedCoins}
+            onCoinsChange={updateCoins}
+          />
         </div>
 
-        {/* Time Range - Buttons on Desktop, Dropdown on Mobile */}
-        <div className="flex-shrink-0 w-full sm:w-auto">
-          {/* Mobile Dropdown */}
-          <div className="sm:hidden">
-            <Select
-              value={activeTimeRange || "1m"}
-              onValueChange={(value) => setTimeRange(value as TimeRange)}
+        {/* Right Group: Time Range and Breakdown */}
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+          {/* Time Range - Buttons on Desktop, Dropdown on Mobile */}
+          <div className="flex-shrink-0 w-full sm:w-auto">
+            {/* Mobile Dropdown */}
+            <div className="sm:hidden">
+              <Select
+                value={activeTimeRange || "1m"}
+                onValueChange={(value) => setTimeRange(value as TimeRange)}
+              >
+                <SelectTrigger className="h-8 w-full">
+                  <SelectValue placeholder="Select range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_RANGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Desktop Buttons */}
+            <div className="hidden sm:block">
+              <TimeRangeButtons
+                activeTimeRange={activeTimeRange}
+                onTimeRangeChange={setTimeRange}
+              />
+            </div>
+          </div>
+
+          {/* Breakdown Selector */}
+          <div className="flex-shrink-0 w-full sm:w-auto">
+            <BreakdownSelector
+              selectedBreakdown={filters.breakdown}
+              onBreakdownChange={updateBreakdown}
+            />
+          </div>
+
+          {/* Reset Zoom Button */}
+          {filters.isZoomed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetZoom}
+              className="h-8 w-full sm:w-auto"
             >
-              <SelectTrigger className="h-8 w-full">
-                <SelectValue placeholder="Select range" />
-              </SelectTrigger>
-              <SelectContent>
-                {TIME_RANGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Desktop Buttons */}
-          <div className="hidden sm:block">
-            <TimeRangeButtons
-              activeTimeRange={activeTimeRange}
-              onTimeRangeChange={setTimeRange}
-            />
-          </div>
+              Reset zoom
+            </Button>
+          )}
         </div>
-
-        {/* Reset Zoom Button */}
-        {filters.isZoomed && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={resetZoom}
-            className="h-8 w-full sm:w-auto"
-          >
-            Reset zoom
-          </Button>
-        )}
       </div>
 
-      {/* Selected Coins Cards */}
+      {/* Second Row: Selected Coins Cards */}
       {filters.selectedCoins.length > 0 && (
         <SelectedCoinCards
           selectedCoins={filters.selectedCoins}
