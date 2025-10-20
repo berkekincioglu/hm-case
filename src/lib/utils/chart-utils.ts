@@ -105,7 +105,18 @@ export function getSeriesColor(index: number): string {
     "#f59e0b", // amber-500
     "#ef4444", // red-500
     "#8b5cf6", // violet-500
-    "#ec4899", // pink-500
+    "#ec4899", // pink-500,
+    "#14b8a6", // teal-500
+    "#f97316", // orange-500
+    "#6366f1", // indigo-500
+    "#22c55e", // green-500
+    "#eab308", // yellow-500
+    "#db2777", // rose-500
+    "#0ea5e9", // sky-500
+    "#a855f7", // purple-500
+    "#f43f5e", // pink-600
+    "#22d3ee", // cyan-400
+    "#84cc16", // lime-500
   ];
 
   return colors[index % colors.length];
