@@ -34,6 +34,18 @@ yarn-error.log*
 .env*
 !.env.example
 
+# CDK
+cdk.out/
+cdk.context.json
+*.js
+*.d.ts
+!jest.config.js
+!lambda/**/*.js
+
+# Lambda
+lambda/**/node_modules
+lambda/**/package-lock.json
+
 # vercel
 .vercel
 

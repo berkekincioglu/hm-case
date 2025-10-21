@@ -1,0 +1,9 @@
+{
+  "name": "fetch-data-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for daily cryptocurrency data fetch",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
+  }
+}

@@ -193,6 +193,11 @@ o CDK/Serverless configuration if applicable (e.g., cdk.json,
 serverless.yml)
 o Clear folder structure - README explaining deployment steps and any AWS usage (optional but preferred)
 
+Bonus Points – AWS Deployment (Infrastructure as Code)
+Candidates who deploy their application to AWS using IaC will receive extra points.
+Preferred Stack:
+AWS CDK (TypeScript) or Serverless Framework
+
 Expectations:
 -Logical resource definitions (e.g., S3 for frontend, Lambda/API Gateway for backend)
 -Correct IAM roles/policies
