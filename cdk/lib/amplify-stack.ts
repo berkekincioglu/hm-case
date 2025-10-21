@@ -49,31 +49,7 @@ export class AmplifyStack extends cdk.Stack {
       repository: `https://github.com/${githubOwner}/${githubRepo}`,
       accessToken: githubToken.unsafeUnwrap(),
 
-      // Build settings for Next.js
-      buildSpec: JSON.stringify({
-        version: 1,
-        frontend: {
-          phases: {
-            preBuild: {
-              commands: [
-                "npm ci",
-                "npx prisma generate",
-                "npx prisma migrate deploy",
-              ],
-            },
-            build: {
-              commands: ["npm run build"],
-            },
-          },
-          artifacts: {
-            baseDirectory: ".next",
-            files: ["**/*"],
-          },
-          cache: {
-            paths: ["node_modules/**/*", ".next/cache/**/*"],
-          },
-        },
-      }),
+      // Build settings will be read from amplify.yml in repo root
 
       // Environment variables
       environmentVariables: [
@@ -112,14 +88,6 @@ export class AmplifyStack extends cdk.Stack {
         {
           name: "NEXT_PUBLIC_API_URL",
           value: "/api",
-        },
-        {
-          name: "AMPLIFY_MONOREPO_APP_ROOT",
-          value: ".",
-        },
-        {
-          name: "AMPLIFY_DIFF_DEPLOY",
-          value: "false",
         },
         {
           name: "_LIVE_UPDATES",
