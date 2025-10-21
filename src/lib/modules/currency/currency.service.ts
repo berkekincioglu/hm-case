@@ -1,6 +1,7 @@
-import { currencyRepository } from "./currency.repository";
-import { CreateCurrencyDto, CurrencyEntity } from "./currency.types";
 import { logger } from "@/lib/utils/logger";
+
+import { currencyRepository } from "./currency.repository";
+import type { CreateCurrencyDto, CurrencyEntity } from "./currency.types";
 
 class CurrencyService {
   /**

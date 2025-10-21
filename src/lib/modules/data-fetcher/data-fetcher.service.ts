@@ -25,7 +25,6 @@ const MAJOR_COINS = [
   { id: "chainlink", symbol: "link", name: "Chainlink" },
   { id: "uniswap", symbol: "uni", name: "Uniswap" },
   { id: "litecoin", symbol: "ltc", name: "Litecoin" },
-  // Removed polygon (matic) - returns 404 from CoinGecko
 ];
 
 // Currencies to fetch (as per requirement)
@@ -185,7 +184,7 @@ class DataFetcherService {
 
     for (let i = 0; i < hourlyPrices.length; i += BATCH_SIZE) {
       const batch = hourlyPrices.slice(i, i + BATCH_SIZE);
-      await priceRepository.createManyHourly(batch);
+      await priceRepository.upsertManyHourly(batch);
       logger.info(
         `Stored hourly batch ${i / BATCH_SIZE + 1}/${Math.ceil(
           hourlyPrices.length / BATCH_SIZE
@@ -229,7 +228,7 @@ class DataFetcherService {
 
     for (let i = 0; i < dailyPrices.length; i += BATCH_SIZE) {
       const batch = dailyPrices.slice(i, i + BATCH_SIZE);
-      await priceRepository.createManyDaily(batch);
+      await priceRepository.upsertManyDaily(batch);
       logger.info(
         `Stored daily batch ${i / BATCH_SIZE + 1}/${Math.ceil(
           dailyPrices.length / BATCH_SIZE

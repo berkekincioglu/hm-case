@@ -1,6 +1,7 @@
-import { coinRepository } from "./coin.repository";
-import { CreateCoinDto, CoinEntity } from "./coin.types";
 import { logger } from "@/lib/utils/logger";
+
+import { coinRepository } from "./coin.repository";
+import type { CreateCoinDto, CoinEntity } from "./coin.types";
 
 class CoinService {
   /**

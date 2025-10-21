@@ -41,6 +41,48 @@ class PriceRepository {
   }
 
   /**
+   * Upsert many daily price records (update if exists, create if not)
+   * This is more expensive than createMany but ensures data integrity
+   */
+  async upsertManyDaily(prices: CreatePriceDailyDto[]): Promise<number> {
+    try {
+      let upsertedCount = 0;
+
+      // Process in batches to avoid overwhelming the database
+      const batchSize = 100;
+      for (let i = 0; i < prices.length; i += batchSize) {
+        const batch = prices.slice(i, i + batchSize);
+
+        await prisma.$transaction(
+          batch.map((price) =>
+            prisma.priceDaily.upsert({
+              where: {
+                coinId_currencyCode_date: {
+                  coinId: price.coinId,
+                  currencyCode: price.currencyCode,
+                  date: price.date,
+                },
+              },
+              update: {
+                price: price.price,
+              },
+              create: price,
+            })
+          )
+        );
+
+        upsertedCount += batch.length;
+      }
+
+      logger.info(`Upserted ${upsertedCount} daily price records`);
+      return upsertedCount;
+    } catch (error) {
+      logger.error("Failed to upsert many daily prices", error);
+      throw error;
+    }
+  }
+
+  /**
    * Create hourly price record
    */
   async createHourly(data: CreatePriceHourlyDto): Promise<PriceHourlyEntity> {
@@ -67,6 +109,48 @@ class PriceRepository {
       return result.count;
     } catch (error) {
       logger.error("Failed to create many hourly prices", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upsert many hourly price records (update if exists, create if not)
+   * This is more expensive than createMany but ensures data integrity
+   */
+  async upsertManyHourly(prices: CreatePriceHourlyDto[]): Promise<number> {
+    try {
+      let upsertedCount = 0;
+
+      // Process in batches to avoid overwhelming the database
+      const batchSize = 100;
+      for (let i = 0; i < prices.length; i += batchSize) {
+        const batch = prices.slice(i, i + batchSize);
+
+        await prisma.$transaction(
+          batch.map((price) =>
+            prisma.priceHourly.upsert({
+              where: {
+                coinId_currencyCode_timestamp: {
+                  coinId: price.coinId,
+                  currencyCode: price.currencyCode,
+                  timestamp: price.timestamp,
+                },
+              },
+              update: {
+                price: price.price,
+              },
+              create: price,
+            })
+          )
+        );
+
+        upsertedCount += batch.length;
+      }
+
+      logger.info(`Upserted ${upsertedCount} hourly price records`);
+      return upsertedCount;
+    } catch (error) {
+      logger.error("Failed to upsert many hourly prices", error);
       throw error;
     }
   }

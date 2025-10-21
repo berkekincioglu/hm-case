@@ -25,10 +25,10 @@ import { ApiResponse } from "@/lib/utils/response";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const coinId = params.id;
+    const { id: coinId } = await params;
 
     // Check if coin exists
     const coin = await coinRepository.findById(coinId);
@@ -85,7 +85,8 @@ export async function GET(
       homepageUrl: metadata.homepageUrl,
     });
   } catch (error) {
-    logger.error(`Failed to fetch metadata for coin: ${params.id}`, error);
+    const { id } = await params;
+    logger.error(`Failed to fetch metadata for coin: ${id}`, error);
     return ApiResponse.error("Failed to fetch coin metadata", 500, error);
   }
 }
