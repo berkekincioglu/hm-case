@@ -19,6 +19,8 @@ npm run fetch-data
 npm run dev
 ```
 
+**LIVE URL** : https://main.d3juig7aamo1pa.amplifyapp.com
+
 **Visit:** http://localhost:3000
 
 ---

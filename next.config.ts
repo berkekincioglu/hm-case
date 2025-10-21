@@ -11,9 +11,14 @@ const nextConfig: NextConfig = {
     // Ignore Lambda and CDK directories completely
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ["**/node_modules/**", "**/lambda/**", "**/cdk/**", "**/cdk.out/**"],
+      ignored: [
+        "**/node_modules/**",
+        "**/lambda/**",
+        "**/cdk/**",
+        "**/cdk.out/**",
+      ],
     };
-    
+
     return config;
   },
   // Exclude from transpilation
