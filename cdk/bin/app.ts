@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 
 import { AmplifyStack } from "../lib/amplify-stack";
@@ -25,26 +24,22 @@ const secretsStack = new SecretsStack(app, `hm-case-Secrets-${environment}`, {
   description: "Secrets Manager for API keys and credentials",
 });
 
-// Stack 2: Database (depends on secrets)
+// Stack 2: Database (no dependencies - creates its own secret)
 const databaseStack = new DatabaseStack(
   app,
   `hm-case-Database-${environment}`,
   {
     env,
     description: "RDS PostgreSQL database",
-    dbSecret: secretsStack.dbSecret,
-    coinGeckoSecret: secretsStack.coinGeckoSecret,
-    jwtSecret: secretsStack.jwtSecret,
-    cronSecret: secretsStack.cronSecret,
   }
 );
 
-// Stack 3: Amplify (depends on database)
+// Stack 3: Amplify (depends on database and secrets)
 const amplifyStack = new AmplifyStack(app, `hm-case-Amplify-${environment}`, {
   env,
   description: "AWS Amplify hosting for Next.js application",
-  databaseUrl: databaseStack.databaseUrl,
-  dbSecret: secretsStack.dbSecret,
+  database: databaseStack.database,
+  dbSecret: databaseStack.dbSecret,
   coinGeckoSecret: secretsStack.coinGeckoSecret,
   jwtSecret: secretsStack.jwtSecret,
   cronSecret: secretsStack.cronSecret,

@@ -1,10 +1,11 @@
 import * as cdk from "aws-cdk-lib";
 import * as amplify from "aws-cdk-lib/aws-amplify";
+import type * as rds from "aws-cdk-lib/aws-rds";
 import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
 
 interface AmplifyStackProps extends cdk.StackProps {
-  databaseUrl: string;
+  database: rds.DatabaseInstance;
   dbSecret: secretsmanager.ISecret;
   coinGeckoSecret: secretsmanager.ISecret;
   jwtSecret: secretsmanager.ISecret;
@@ -29,6 +30,18 @@ export class AmplifyStack extends cdk.Stack {
     const githubToken = cdk.SecretValue.secretsManager(
       "crypto-dashboard/github-token"
     );
+
+    // Construct DATABASE_URL
+    const dbHost = props.database.dbInstanceEndpointAddress;
+    const dbPort = props.database.dbInstanceEndpointPort;
+    const dbName = "crypto_dashboard";
+    const dbUser = props.dbSecret
+      .secretValueFromJson("username")
+      .unsafeUnwrap();
+    const dbPassword = props.dbSecret
+      .secretValueFromJson("password")
+      .unsafeUnwrap();
+    const databaseUrl = `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}?schema=public`;
 
     // Create Amplify App
     this.app = new amplify.CfnApp(this, "AmplifyApp", {
@@ -66,7 +79,7 @@ export class AmplifyStack extends cdk.Stack {
       environmentVariables: [
         {
           name: "DATABASE_URL",
-          value: props.databaseUrl,
+          value: databaseUrl,
         },
         {
           name: "COINGECKO_API_KEY",

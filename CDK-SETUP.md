@@ -52,7 +52,7 @@ aws configure
 # Enter:
 # - AWS Access Key ID: (from AWS Console)
 # - AWS Secret Access Key: (from AWS Console)
-# - Default region: us-east-1
+# - Default region: us-central-1
 # - Output format: json
 
 # Verify
