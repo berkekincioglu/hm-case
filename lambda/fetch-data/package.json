@@ -2,8 +2,20 @@
   "name": "fetch-data-lambda",
   "version": "1.0.0",
   "description": "Lambda function for daily cryptocurrency data fetch",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist/node_modules/@prisma/client dist/node_modules/.prisma/client && esbuild src/index.ts --bundle --platform=node --target=node18 --outfile=dist/index.js --external:@aws-sdk/* --external:@prisma/client --external:aws-lambda --minify && cp -r node_modules/.prisma/client dist/node_modules/.prisma/ && cp node_modules/@prisma/client/*.js dist/node_modules/@prisma/client/ && cp node_modules/@prisma/client/*.d.ts dist/node_modules/@prisma/client/ && cp -r node_modules/@prisma/client/runtime dist/node_modules/@prisma/client/ && cp node_modules/@prisma/client/package.json dist/node_modules/@prisma/client/ && find dist/node_modules/.prisma/client \\( -name 'libquery_engine-darwin*' -o -name '*.wasm' -o -name '*browser*' -o -name 'edge.*' -o -name 'wasm*' \\) -type f -delete"
+  },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.0.0"
+    "@aws-sdk/client-secrets-manager": "^3.0.0",
+    "@prisma/client": "^6.17.1",
+    "axios": "^1.12.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.19.0",
+    "prisma": "^6.17.1",
+    "typescript": "^5.0.0"
   }
 }

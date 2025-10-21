@@ -46,33 +46,21 @@ export async function POST(request: NextRequest) {
 
     logger.info("Cron job triggered - starting data fetch");
 
-    // Run the data fetch asynchronously to avoid timeout
+    // Run the data fetch and await completion
     // cleanFirst=false: Don't delete existing data, just add new/update existing
     // This prevents data loss if cron runs while users are viewing the dashboard
-    dataFetcherService
-      .runFullDataFetch(false)
-      .then(() => {
-        logger.success("Cron job completed successfully");
-      })
-      .catch((error) => {
-        logger.error("Cron job failed during async execution", error);
-      });
+    // Note: Lambda timeout is 5 minutes, so we have time to complete
+    const startTime = Date.now();
+    await dataFetcherService.runFullDataFetch(false);
+    const duration = Date.now() - startTime;
 
-    // Return 202 (Accepted) immediately - processing will continue in background
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: {
-          message: "Data fetch started successfully",
-          timestamp: new Date().toISOString(),
-          status: "processing",
-        },
-      }),
-      {
-        status: 202,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    logger.success(`Cron job completed successfully in ${duration}ms`);
+
+    return ApiResponse.success({
+      message: "Data fetch completed successfully",
+      timestamp: new Date().toISOString(),
+      duration: `${duration}ms`,
+    });
   } catch (error) {
     logger.error("Cron job failed", error);
     return ApiResponse.error("Failed to fetch data", 500, error);

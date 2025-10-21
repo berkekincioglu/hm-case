@@ -45,12 +45,13 @@ const amplifyStack = new AmplifyStack(app, `hm-case-Amplify-${environment}`, {
   cronSecret: secretsStack.cronSecret,
 });
 
-// Stack 4: Cron Job (depends on amplify)
+// Stack 4: Cron Job (depends on database and secrets)
 const _cronStack = new CronStack(app, `hm-case-Cron-${environment}`, {
   env,
   description: "EventBridge cron job for daily data fetching",
-  amplifyAppUrl: amplifyStack.appUrl,
-  cronSecret: secretsStack.cronSecret,
+  database: databaseStack.database,
+  dbSecret: databaseStack.dbSecret,
+  coinGeckoSecret: secretsStack.coinGeckoSecret,
 });
 
 // Add tags to all stacks
