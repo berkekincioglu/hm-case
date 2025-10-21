@@ -4,8 +4,6 @@ frontend:
     preBuild:
       commands:
         - npm install --include=dev
-        - npx prisma generate
-        - npx prisma migrate deploy
     build:
       commands:
         - env | grep -e DATABASE_URL >> .env.production
@@ -16,6 +14,8 @@ frontend:
         - env | grep -e AUTH_USERNAME >> .env.production
         - env | grep -e AUTH_PASSWORD >> .env.production
         - env | grep -e NEXT_PUBLIC_API_URL >> .env.production
+        - npx prisma generate
+        - npx prisma migrate deploy
         - npm run build
   artifacts:
     baseDirectory: .next
