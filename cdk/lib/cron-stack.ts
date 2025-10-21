@@ -5,6 +5,7 @@ import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
 
@@ -14,18 +15,17 @@ interface CronStackProps extends cdk.StackProps {
 }
 
 export class CronStack extends cdk.Stack {
-  public readonly cronFunction: lambda.Function;
+  public readonly cronFunction: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: CronStackProps) {
     super(scope, id, props);
 
     // Lambda function to trigger the API endpoint
-    this.cronFunction = new lambda.Function(this, "FetchDataFunction", {
+    // Using NodejsFunction to handle TypeScript compilation automatically
+    this.cronFunction = new NodejsFunction(this, "FetchDataFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset(
-        path.join(__dirname, "../../lambda/fetch-data")
-      ),
+      handler: "handler",
+      entry: path.join(__dirname, "../../lambda/fetch-data/index.ts"),
       timeout: cdk.Duration.minutes(5), // CoinGecko API can be slow
       memorySize: 256,
       environment: {
@@ -33,6 +33,10 @@ export class CronStack extends cdk.Stack {
         CRON_SECRET_ARN: props.cronSecret.secretArn,
       },
       description: "Daily cron job to fetch cryptocurrency price data",
+      bundling: {
+        externalModules: ["@aws-sdk/*"], // AWS SDK is included in Lambda runtime
+        minify: true,
+      },
     });
 
     // Grant Lambda permission to read the secret
@@ -51,11 +55,11 @@ export class CronStack extends cdk.Stack {
       })
     );
 
-    // EventBridge rule - Daily at 11:13 UTC (14:13 Turkey time)
+    // EventBridge rule - Daily at 11:50 UTC (14:50 Turkey time)
     const rule = new events.Rule(this, "DailyCronRule", {
       schedule: events.Schedule.cron({
-        minute: "45",
-        hour: "11",
+        minute: "15",
+        hour: "12",
         day: "*",
         month: "*",
         year: "*",
