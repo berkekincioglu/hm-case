@@ -8,6 +8,7 @@ frontend:
         - npx prisma migrate deploy
     build:
       commands:
+        - export NODE_ENV=production
         - npm run build
   artifacts:
     baseDirectory: .next
