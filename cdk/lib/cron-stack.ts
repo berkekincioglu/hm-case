@@ -51,11 +51,11 @@ export class CronStack extends cdk.Stack {
       })
     );
 
-    // EventBridge rule - Daily at midnight UTC
+    // EventBridge rule - Daily at 11:13 UTC (14:13 Turkey time)
     const rule = new events.Rule(this, "DailyCronRule", {
       schedule: events.Schedule.cron({
-        minute: "0",
-        hour: "0",
+        minute: "35",
+        hour: "11",
         day: "*",
         month: "*",
         year: "*",

@@ -4,6 +4,7 @@ frontend:
     preBuild:
       commands:
         - npm install --include=dev
+        - env | grep -e DATABASE_URL >> .env.production
         - npx prisma generate
         - npx prisma migrate deploy
     build:
