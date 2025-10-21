@@ -3,7 +3,7 @@ frontend:
   phases:
     preBuild:
       commands:
-        - npm install --include=dev
+        - npm ci --include=dev
     build:
       commands:
         - env | grep -e DATABASE_URL >> .env.production

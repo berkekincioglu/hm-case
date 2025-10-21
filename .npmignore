@@ -1,0 +1,4 @@
+# Exclude Lambda and CDK from npm operations
+lambda/
+cdk/
+cdk.out/

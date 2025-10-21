@@ -208,49 +208,10 @@ npm run cdk:deploy
 # ✅ Preserve your code in GitHub
 ```
 
-**One command = $0/month!**
-
-## 🎓 What Makes This Impressive
-
-### For Evaluators
-
-1. **Infrastructure as Code** ✨
-
-   - All resources defined in TypeScript
-   - Version controlled
-   - Reproducible deployment
-
-2. **Best Practices** ✨
-
-   - Secrets in Secrets Manager
-   - IAM roles with least privilege
-   - VPC security groups
-   - Encrypted database
-   - Automated backups
-
-3. **Modular Architecture** ✨
-
-   - 4 separate stacks
-   - Clear dependencies
-   - Easy to update individually
-
-4. **Production-Ready** ✨
-
-   - Auto-scaling
-   - CDN (CloudFront via Amplify)
-   - SSL/TLS certificates
-   - Monitoring with CloudWatch
-
-5. **Cost-Optimized** ✨
-   - Smallest RDS instance
-   - Serverless Lambda (pay per use)
-   - Free tier maximized
-
 ## 📚 Documentation
 
 - **DEPLOYMENT.md** - Full deployment guide with troubleshooting
 - **cdk/lib/\*.ts** - Well-commented infrastructure code
-- **README.md** - Project overview and local development
 
 ## 🎉 You're Ready to Deploy!
 

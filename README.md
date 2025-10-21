@@ -1,8 +1,4 @@
-# Cryptocurrency Price Dashboard - Case Study Implementation
-
-> A full-stack cryptocurrency price tracking dashboard built with Next.js, TypeScript, and PostgreSQL, consuming data from the CoinGecko API.
-
-## 🚀 Quick Start
+## 🚀 Quick Start (For Local)
 
 ```bash
 # 1. Clone and install
@@ -27,110 +23,13 @@ npm run dev
 
 ---
 
-## 📚 Documentation
-
-- **[📖 Full Implementation Guide](./README_DETAILED.md)** - Complete project architecture & roadmap
-- **[⏰ Scheduled Data Fetching](./docs/SCHEDULED_FETCHING.md)** - AWS EventBridge setup & cron implementation
-- **[☁️ AWS Deployment](./docs/AWS_DEPLOYMENT.md)** - Production deployment with ECS, RDS, CloudFront
-- **[🧪 Testing Cron Jobs](./docs/TESTING_CRON.md)** - Test & troubleshoot scheduled data fetching
-- **[🔧 API Testing Guide](./COINGECKO_API_TESTS.md)** - CoinGecko API curl commands & examples
-
----
-
-## 🎯 Project Overview
-
-**Goal**: Build a cryptocurrency price dashboard with:
-
-- � Historical price data visualization (charts & tables)
-- 🎛️ Multi-dimensional filtering (Coin, Currency, Date)
-- 🔄 Automatic granularity switching (daily vs hourly)
-- 🔌 Backend-only CoinGecko API integration
-- ⏰ Scheduled data fetching and storage
-- 🔐 Login authentication (hardcoded credentials)
-
----
-
 ## 🏗️ Tech Stack
 
 - **Frontend**: Next.js 15, React, TypeScript, TailwindCSS
 - **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: PostgreSQL 18 (Docker)
+- **Database**: PostgreSQL (Docker)
 - **External API**: CoinGecko (Free tier)
-- **Deployment**: AWS ECS/Fargate, RDS, CloudFront, EventBridge
-
----
-
-## 🗂️ Project Structure
-
-```
-hypermonk-case/
-├── docs/                          # 📚 Documentation
-│   ├── SCHEDULED_FETCHING.md     # Cron job implementation
-│   ├── AWS_DEPLOYMENT.md         # Production deployment guide
-│   └── TESTING_CRON.md           # Testing & troubleshooting
-├── src/
-│   ├── app/
-│   │   ├── api/                  # API Routes
-│   │   │   ├── health/          # Health check endpoint
-│   │   │   ├── coins/           # Coins listing
-│   │   │   ├── currencies/      # Currencies listing
-│   │   │   └── cron/            # Scheduled data fetch endpoint
-│   │   └── page.tsx             # Frontend dashboard
-│   ├── lib/
-│   │   ├── modules/             # Modular business logic
-│   │   │   ├── coin/           # Coin service & repository
-│   │   │   ├── currency/       # Currency service & repository
-│   │   │   ├── price/          # Price service & repository
-│   │   │   ├── coingecko/      # CoinGecko API integration
-│   │   │   └── data-fetcher/   # Data orchestration
-│   │   ├── db/                 # Database client
-│   │   └── utils/              # Helpers (logger, response)
-│   └── prisma/
-│       └── schema.prisma        # Database schema
-├── scripts/
-│   └── fetch-data.ts            # Manual data fetch script
-├── COINGECKO_API_TESTS.md       # API testing guide
-├── README_DETAILED.md           # Full architecture docs
-└── README.md                    # This file
-```
-
----
-
-## 🚀 Development Setup
-
-### Prerequisites
-
-- Node.js 20+
-- Docker Desktop
-- PostgreSQL client (optional)
-
-### Installation
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start PostgreSQL with Docker
-docker-compose up -d
-
-# 3. Setup environment variables
-cp .env.example .env
-# Edit .env with your values (defaults work for local)
-
-# 4. Run database migrations
-npx prisma migrate dev
-
-# 5. (Optional) Open Prisma Studio to inspect database
-npm run studio
-```
-
-### Fetch Initial Data
-
-```bash
-# Fetches last 90 days of data for 11 coins × 4 currencies
-# Takes ~2-3 minutes (rate limited to 2 seconds per request)
-npm run fetch-data
-```
+- **Deployment**: AWS Amplify, RDS, CloudFormation, EventBridge
 
 **What this does:**
 
@@ -150,27 +49,6 @@ Visit http://localhost:3000
 ---
 
 ## 🧪 Testing
-
-### Test API Endpoints
-
-```bash
-# Health check
-curl http://localhost:3000/api/health
-
-# List coins
-curl http://localhost:3000/api/coins
-
-# List currencies
-curl http://localhost:3000/api/currencies
-
-# Test cron endpoint (requires CRON_SECRET)
-curl -X POST http://localhost:3000/api/cron/fetch-data \
-  -H "Authorization: Bearer dev-secret-for-local-testing-only"
-```
-
-See [COINGECKO_API_TESTS.md](./COINGECKO_API_TESTS.md) for complete API testing guide.
-
----
 
 ## 📊 Data Overview
 
@@ -195,844 +73,406 @@ See [COINGECKO_API_TESTS.md](./COINGECKO_API_TESTS.md) for complete API testing 
 - GBP (British Pound)
 - TRY (Turkish Lira)
 
-### Date Range
-
-- **Development**: Last 90 days (dynamic)
-- **Granularity**: Hourly data points
-- **Aggregation**: Daily averages calculated
-
 ---
 
-## ⏰ Scheduled Data Fetching
+## ⏰ Scheduled Data Fetching (AWS Lambda)
 
-The application uses AWS EventBridge to automatically fetch new data daily.
+The application uses **AWS Lambda + EventBridge** for automated daily data fetching, replacing the traditional cron endpoint approach.
 
-### Local Testing
+### **Architecture**
 
-```bash
-# Manual fetch
-npm run fetch-data
+## NOTE FROM DEV =>
 
-# Test cron endpoint
-curl -X POST http://localhost:3000/api/cron/fetch-data \
-  -H "Authorization: Bearer dev-secret-for-local-testing-only"
-```
+# Normally I was only using lambda for triggering
 
-### Production Setup
+# POST api/cron/fetch-data endpoint but aws amplify does not allow more then 30s requests and throws timeout error
 
-In production, AWS EventBridge triggers the `/api/cron/fetch-data` endpoint daily:
+# thats why I have to built db setup and fetch coins, currencies daily in lambda func.
 
 ```
-AWS EventBridge (cron: 0 2 * * ? *)
-    ↓
-POST https://your-domain.com/api/cron/fetch-data
-    ↓
-Fetch latest data from CoinGecko
-    ↓
-Update PostgreSQL database
+┌─────────────────────────────────────────────────────────────┐
+│  EventBridge Rule (Cron: 00:00 UTC daily)                   │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │  cron(0 0 * * ? *)                               │    │
+│  └────────────────────┬───────────────────────────────┘    │
+│                       │ Triggers                            │
+│                       ▼                                     │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │  Lambda Function                                   │    │
+│  │  - Fetches from CoinGecko API                      │    │
+│  │  - Stores to RDS PostgreSQL                        │    │
+│  │  - Logs to CloudWatch                              │    │
+│  │  - Execution: ~55 seconds                          │    │
+│  │  - Memory: 512MB, Timeout: 5 minutes               │    │
+│  └────────────────────┬───────────────────────────────┘    │
+│                       │ Connects via VPC                    │
+│                       ▼                                     │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │  RDS PostgreSQL Database                           │    │
+│  │  - Stores hourly prices (~14k records/day)         │    │
+│  │  - Stores daily prices (~2k records/day)           │    │
+│  └────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**See:** [docs/SCHEDULED_FETCHING.md](./docs/SCHEDULED_FETCHING.md) for complete setup instructions.
+### **How It Works**
 
----
+1. **EventBridge Rule** triggers Lambda at 00:00 UTC daily
+2. **Lambda Function** executes data fetching:
+   - Retrieves DB credentials from **Secrets Manager**
+   - Calls **CoinGecko API** with rate limiting (2s delay)
+   - Fetches 30 days hourly data + 365 days daily data
+   - Stores records in **RDS PostgreSQL**
+   - Logs execution details to **CloudWatch**
+3. **Next.js Frontend** reads data from same RDS instance
+
+### **Verified Performance**
+
+- ✅ **Execution Time:** ~55 seconds (well under 5-min timeout)
+- ✅ **Hourly Records:** 14,420+ records stored per run
+- ✅ **Daily Records:** 2,196+ records stored per run
+- ✅ **Success Rate:** 100% (verified in CloudWatch logs)
+
+### **Manual Testing**
+
+**CloudWatch Logs:**
+
+```
+[INFO] Storing 14420 hourly prices
+[INFO] Inserted 14420 hourly prices
+[INFO] Storing 2196 daily prices
+[INFO] Inserted 2196 daily prices
+[INFO] Data fetch completed successfully
+```
+
+### **Configuration**
+
+**Lambda Function Settings:**
+
+- Runtime: Node.js 18.x
+- Memory: 512 MB
+- Timeout: 5 minutes (300 seconds)
+- VPC: Enabled (access to RDS)
+- Environment Variables:
+  - `SECRET_ARN` - Points to Secrets Manager for DB credentials
+
+**Secrets Manager (Database Credentials):**
+
+```json
+{
+  "host": "hm-case-dev.xxxxx.eu-central-1.rds.amazonaws.com",
+  "username": "postgres",
+  "password": "<auto-generated>",
+  "database": "crypto_dashboard",
+  "port": 5432
+}
+```
+
+### **Why Lambda Instead of Cron Endpoint?**
+
+| Aspect          | Lambda + EventBridge   | Traditional Cron Endpoint   |
+| --------------- | ---------------------- | --------------------------- |
+| **Security**    | No public endpoint     | Requires bearer token auth  |
+| **Reliability** | AWS-managed scheduling | Depends on external service |
+| **Scalability** | Auto-scales            | Limited by server capacity  |
+| **Cost**        | $0 (free tier)         | Server must run 24/7        |
+| **Monitoring**  | Built-in CloudWatch    | Custom logging required     |
+| **Maintenance** | Fully managed          | Manual server upkeep        |
+
+**Issue: Lambda not triggering**
+
+- Check EventBridge rule is enabled in AWS Console
+- Verify Lambda has proper IAM permissions
+- Check CloudWatch Events metrics
+
+**Issue: Lambda fails with database error**
+
+- Verify Lambda is in same VPC as RDS
+- Check security group allows inbound on port 5432
+- Confirm Secrets Manager ARN is correct
+
+**Issue: CoinGecko API rate limit errors**
+
+- Verify delay is set to 2000ms (30 req/min)
+- Check free tier limits in CoinGecko dashboard
+- Consider upgrading to paid tier for higher limits
 
 ## 🚢 Deployment
 
-### Quick Deploy to AWS
+This application uses **AWS CDK** for infrastructure as code with two deployment approaches:
 
-1. **Database**: Create RDS PostgreSQL instance
-2. **Container**: Build Docker image, push to ECR
-3. **Compute**: Deploy to ECS Fargate with ALB
-4. **CDN**: Setup CloudFront distribution
-5. **Scheduling**: Configure EventBridge rule
+### **Deployment Architecture**
 
-**See:** [docs/AWS_DEPLOYMENT.md](./docs/AWS_DEPLOYMENT.md) for step-by-step guide.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     AWS INFRASTRUCTURE                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐   │
+│  │ AWS Amplify │      │   Lambda    │      │     RDS     │   │
+│  │  (Next.js)  │─────▶│  Function   │─────▶│ PostgreSQL  │   │
+│  │   Hosting   │      │ (Cron Job)  │      │             │   │
+│  └─────────────┘      └─────────────┘      └─────────────┘   │
+│         │                     ▲                                │
+│         │                     │                                │
+│         │            ┌─────────────────┐                       │
+│         │            │  EventBridge    │                       │
+│         └───────────▶│  (Scheduler)    │                       │
+│                      │  cron(0 0 * * ? *)                   │
+│                      └─────────────────┘                       │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │              AWS Secrets Manager                         │  │
+│  │  - DATABASE_URL                                          │  │
+│  │  - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME               │  │
+│  └─────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Environment Variables (Production)
+### **Prerequisites**
+
+- AWS Account with appropriate permissions
+- AWS CLI configured (`aws configure`)
+- Node.js 18+ and npm installed
+- Docker installed (for Lambda builds)
+
+### **Step 1: Deploy Infrastructure with AWS CDK**
 
 ```bash
-DATABASE_URL=postgresql://user:pass@rds-host:5432/crypto_dashboard
-COINGECKO_API_KEY=your-production-api-key
-CRON_SECRET=your-super-secret-token
-NODE_ENV=production
-```
-
-Store these in **AWS Secrets Manager** for security.
-
----
-
-## 🎯 Implementation Status
-
-### ✅ Completed (Backend)
-
-- [x] PostgreSQL database with Docker
-- [x] Prisma ORM setup with migrations
-- [x] Modular architecture (services, repositories)
-- [x] CoinGecko API integration with rate limiting
-- [x] Data fetching & storage pipeline
-- [x] Health check endpoint
-- [x] Coins & currencies endpoints
-- [x] Scheduled cron endpoint with security
-- [x] Comprehensive documentation
-- [x] AWS deployment guides
-
-### ⏳ In Progress (Frontend)
-
-- [ ] Login page with authentication
-- [ ] Dashboard with filters (coin, currency, date)
-- [ ] Interactive price chart (daily/hourly switching)
-- [ ] Data table with sorting & pagination
-- [ ] Responsive design
-
-### 📅 Planned
-
-- [ ] Unit tests (Jest)
-- [ ] Integration tests (Playwright)
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Performance monitoring (Sentry)
-
----
-
-## 🛠️ Available Scripts
-
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm start            # Start production server
-npm run lint         # Run ESLint
-npm run studio       # Open Prisma Studio
-npm run fetch-data   # Fetch historical data from CoinGecko
-```
-
----
-
-## � Key Design Decisions
-
-### 1. Modular Architecture
-
-Inspired by NestJS, organized by feature modules:
-
-- Each module has: `types.ts`, `repository.ts`, `service.ts`
-- Clear separation of concerns
-- Easy to test and maintain
-
-### 2. Rate Limiting Strategy
-
-```typescript
-// 2 seconds between requests = 30 req/min (safe for CoinGecko free tier)
-const RATE_LIMIT_DELAY = 2000;
-```
-
-### 3. Date Range Flexibility
-
-```typescript
-// Last 90 days (dynamic)
-const to = moment().endOf("day").unix();
-const from = moment().subtract(90, "days").startOf("day").unix();
-```
-
-This ensures data is always within CoinGecko's free tier limit (365 days).
-
-### 4. Idempotent Data Fetching
-
-```typescript
-// Safe to run multiple times without duplicates
-runFullDataFetch(cleanFirst: false)
-```
-
-Uses upsert operations to prevent duplicate data.
-
----
-
-## 🎓 Interview Preparation
-
-### Architecture Decisions
-
-**Q: Why Next.js over separate frontend/backend?**
-
-A: "Next.js provides a unified full-stack framework with built-in API routes, eliminating the need for separate Express/NestJS backend. It simplifies deployment, reduces boilerplate, and provides excellent TypeScript support across the stack."
-
-**Q: Why PostgreSQL over MongoDB?**
-
-A: "Cryptocurrency price data is highly relational (coins, currencies, prices, timestamps) with strict schema requirements. PostgreSQL excels at time-series data with proper indexing, and Prisma provides type-safe queries with migrations."
-
-**Q: How does scheduled fetching work?**
-
-A: "In production, AWS EventBridge triggers a secured API endpoint (`/api/cron/fetch-data`) daily. The endpoint validates a bearer token, fetches data from CoinGecko with rate limiting, and stores it in PostgreSQL. This serverless approach scales without maintaining persistent workers."
-
-### Scalability Considerations
-
-**Q: How would you scale to 1000 coins?**
-
-A: "Three approaches:
-
-1. **Batch processing**: Queue-based system (SQS) with multiple workers
-2. **Caching**: Redis for frequently accessed data
-3. **API optimization**: Use CoinGecko Pro's bulk endpoints
-4. **Database**: Read replicas for query distribution
-5. **Storage**: Time-series DB like TimescaleDB for better performance"
-
-### Security
-
-**Q: How is the cron endpoint secured?**
-
-A: "Two layers:
-
-1. **Bearer token authentication**: CRON_SECRET environment variable stored in AWS Secrets Manager
-2. **IP whitelisting** (optional): Only allow AWS EventBridge IP ranges
-3. **Logging**: All unauthorized attempts logged with IP addresses"
-
----
-
-## 🤝 Contributing
-
-This is a case study project. For questions or suggestions, please reach out to the development team.
-
----
-
-## 📄 License
-
-MIT License - See LICENSE file for details.
-
----
-
-## 🔗 Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [CoinGecko API Docs](https://docs.coingecko.com/reference/introduction)
-- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
-- [AWS EventBridge Documentation](https://docs.aws.amazon.com/eventbridge/)
-
----
-
-**Built with ❤️ for Hypermonk Case Study**
-| **Database Integration** | Native support for PostgreSQL/SQLite | ✅ |
-| **Authentication** | Middleware + Session management | ✅ |
-| **Deployment** | AWS Lambda + CloudFront via CDK | ✅ |
-| **Full-stack in one repo** | Unified codebase | ✅ |
-
-**Verdict**: ✅ **Next.js is highly suitable for both frontend and backend needs.**
-
----
-
-## 🏗️ System Architecture
-
-### High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         FRONTEND                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  Login Page  │  │  Dashboard   │  │   Filters    │      │
-│  │              │  │  - Chart     │  │  - Coin      │      │
-│  │              │  │  - Table     │  │  - Currency  │      │
-│  │              │  │              │  │  - Date      │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│                           ↓                                 │
-└───────────────────────────┼─────────────────────────────────┘
-                            │ HTTP Requests
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│                   NEXT.JS API ROUTES                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ /api/auth    │  │ /api/coins   │  │ /api/prices  │      │
-│  │              │  │              │  │              │      │
-│  ├──────────────┤  ├──────────────┤  ├──────────────┤      │
-│  │ /api/fetch   │  │/api/currencies│ │ /api/metadata│      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│                           ↓                                 │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-            ┌───────────────┴───────────────┐
-            ↓                               ↓
-┌─────────────────────┐         ┌─────────────────────┐
-│   DATABASE          │         │   COINGECKO API     │
-│   (PostgreSQL)      │         │   (External)        │
-│                     │         │                     │
-│  - coins            │         │  Used only by       │
-│  - currencies       │         │  backend scheduler  │
-│  - prices_daily     │         │                     │
-│  - prices_hourly    │         └─────────────────────┘
-│  - coin_metadata    │
-└─────────────────────┘
-```
-
-### Component Breakdown
-
-#### Backend Components
-
-1. **API Routes** (`/app/api/`)
-
-   - Authentication endpoints
-   - Data retrieval endpoints
-   - Scheduled data fetcher endpoint
-
-2. **Services Layer** (`/src/lib/services/`)
-
-   - CoinGecko API client
-   - Database query service
-   - Data aggregation service
-
-3. **Database Layer** (`/src/lib/db/`)
-   - Connection management
-   - Query builders
-   - Migrations
-
-#### Frontend Components
-
-1. **Pages** (`/app/`)
-
-   - Login page
-   - Dashboard page
-
-2. **Components** (`/src/components/`)
-
-   - Chart component (with range selection)
-   - Table component (sortable, reorderable, paginated)
-   - Filter controls
-   - Tooltip (bonus feature)
-
-3. **State Management** (`/src/hooks/`, `/src/context/`)
-   - Filter state
-   - Data fetching hooks
-   - Authentication context
-
----
-
-## 🗄️ Database Design
-
-### Schema Overview
-
-#### Table: `coins`
-
-```sql
-CREATE TABLE coins (
-  id VARCHAR(50) PRIMARY KEY,           -- e.g., 'bitcoin'
-  symbol VARCHAR(10) NOT NULL,          -- e.g., 'BTC'
-  name VARCHAR(100) NOT NULL,           -- e.g., 'Bitcoin'
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Table: `currencies`
-
-```sql
-CREATE TABLE currencies (
-  code VARCHAR(10) PRIMARY KEY,         -- e.g., 'USD'
-  name VARCHAR(50) NOT NULL,            -- e.g., 'US Dollar'
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Table: `prices_daily`
-
-```sql
-CREATE TABLE prices_daily (
-  id SERIAL PRIMARY KEY,
-  coin_id VARCHAR(50) REFERENCES coins(id),
-  currency_code VARCHAR(10) REFERENCES currencies(code),
-  date DATE NOT NULL,
-  price DECIMAL(20, 8) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(coin_id, currency_code, date)
-);
-
-CREATE INDEX idx_prices_daily_lookup ON prices_daily(coin_id, currency_code, date);
-CREATE INDEX idx_prices_daily_date ON prices_daily(date);
-```
-
-#### Table: `prices_hourly`
-
-```sql
-CREATE TABLE prices_hourly (
-  id SERIAL PRIMARY KEY,
-  coin_id VARCHAR(50) REFERENCES coins(id),
-  currency_code VARCHAR(10) REFERENCES currencies(code),
-  timestamp TIMESTAMP NOT NULL,
-  price DECIMAL(20, 8) NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(coin_id, currency_code, timestamp)
-);
-
-CREATE INDEX idx_prices_hourly_lookup ON prices_hourly(coin_id, currency_code, timestamp);
-CREATE INDEX idx_prices_hourly_timestamp ON prices_hourly(timestamp);
-```
-
-#### Table: `coin_metadata` (Bonus Feature)
-
-```sql
-CREATE TABLE coin_metadata (
-  coin_id VARCHAR(50) PRIMARY KEY REFERENCES coins(id),
-  description TEXT,
-  image_url VARCHAR(500),
-  homepage_url VARCHAR(500),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
----
-
-## 🔌 API Endpoints Design
-
-### Authentication
-
-```
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/auth/session
-```
-
-### Data Fetching
-
-```
-GET    /api/coins
-       Response: [{ id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin' }]
-
-GET    /api/currencies
-       Response: [{ code: 'USD', name: 'US Dollar' }]
-
-GET    /api/prices
-       Query Params:
-         - coins: string[] (e.g., 'bitcoin,ethereum')
-         - currencies: string[] (e.g., 'usd,eur')
-         - dateFrom: ISO date
-         - dateTo: ISO date
-         - breakdown: string[] (e.g., 'coin,currency,date')
-         - granularity: 'daily' | 'hourly'
-       Response: {
-         data: [{
-           coin?: string,
-           currency?: string,
-           date?: string,
-           price: number
-         }]
-       }
-
-GET    /api/metadata/:coinId (Bonus)
-       Response: { coin_id, description, image_url, homepage_url }
-```
-
-### Background Tasks
-
-```
-POST   /api/fetch/trigger (Protected - internal use)
-       Triggers data fetch from CoinGecko
-```
-
----
-
-## 🚀 Implementation Roadmap
-
-### **PHASE 1: Backend Foundation** (Start Here - Priority 1)
-
-#### Step 1.1: Database Setup
-
-- [ ] Install PostgreSQL locally (or use Docker)
-- [ ] Create database schema (tables and indexes)
-- [ ] Set up database connection utility
-- [ ] Create migration scripts
-
-**Files to create**:
-
-- `/src/lib/db/schema.sql`
-- `/src/lib/db/connection.ts`
-- `/src/lib/db/migrate.ts`
-
----
-
-#### Step 1.2: CoinGecko Integration Service
-
-- [ ] Create CoinGecko API client
-- [ ] Implement coin list fetcher
-- [ ] Implement historical price fetcher (market_chart/range)
-- [ ] Add error handling and rate limiting
-- [ ] Add retry logic
-
-**Files to create**:
-
-- `/src/lib/services/coingecko.ts`
-- `/src/lib/types/coingecko.ts`
-
----
-
-#### Step 1.3: Data Fetcher & Storage
-
-- [ ] Create data fetcher service
-- [ ] Fetch 10+ major coins (BTC, ETH, SOL, etc.)
-- [ ] Fetch 4 currencies (USD, TRY, EUR, GBP)
-- [ ] Process and store daily data (July-August 2025)
-- [ ] Process and store hourly data (July-August 2025)
-- [ ] Store coin metadata (bonus)
-
-**Files to create**:
-
-- `/src/lib/services/dataFetcher.ts`
-- `/src/lib/services/dataStorage.ts`
-
----
-
-#### Step 1.4: Data Query & Aggregation Service
-
-- [ ] Create query builder for flexible filtering
-- [ ] Implement breakdown logic (group by dimensions)
-- [ ] Implement aggregation (average prices)
-- [ ] Handle daily vs hourly switching
-- [ ] Optimize queries with proper indexes
-
-**Files to create**:
-
-- `/src/lib/services/priceQuery.ts`
-- `/src/lib/services/aggregation.ts`
-
----
-
-#### Step 1.5: API Endpoints - Data
-
-- [ ] `GET /api/coins` - List all coins
-- [ ] `GET /api/currencies` - List all currencies
-- [ ] `GET /api/prices` - Get filtered and aggregated prices
-- [ ] `GET /api/metadata/:coinId` - Get coin metadata (bonus)
-- [ ] Add input validation
-- [ ] Add error handling
-
-**Files to create**:
-
-- `/app/api/coins/route.ts`
-- `/app/api/currencies/route.ts`
-- `/app/api/prices/route.ts`
-- `/app/api/metadata/[coinId]/route.ts`
-
----
-
-#### Step 1.6: Authentication API
-
-- [ ] Create auth utility (JWT or session-based)
-- [ ] Implement login endpoint (hardcoded credentials)
-- [ ] Implement logout endpoint
-- [ ] Implement session check endpoint
-- [ ] Create auth middleware
-
-**Files to create**:
-
-- `/src/lib/auth/index.ts`
-- `/app/api/auth/login/route.ts`
-- `/app/api/auth/logout/route.ts`
-- `/app/api/auth/session/route.ts`
-- `/src/middleware.ts`
-
----
-
-#### Step 1.7: Background Scheduler Setup
-
-- [ ] Create trigger endpoint for data fetching
-- [ ] Document how to set up external cron (GitHub Actions, AWS EventBridge)
-- [ ] Test manual trigger
-- [ ] Add logging
-
-**Files to create**:
-
-- `/app/api/fetch/trigger/route.ts`
-- `/scripts/trigger-fetch.sh`
-
----
-
-### **PHASE 2: Frontend Development** (Priority 2)
-
-#### Step 2.1: Project Structure & UI Library Setup
-
-- [ ] Install UI library (shadcn/ui, MUI, or Ant Design)
-- [ ] Install charting library (Recharts, Chart.js, or Apache ECharts)
-- [ ] Set up Tailwind CSS (if using shadcn)
-- [ ] Create component structure
-- [ ] Set up TypeScript types for API responses
-
-**Files to create**:
-
-- `/src/components/ui/*` (if using shadcn)
-- `/src/types/api.ts`
-- `/src/lib/utils.ts`
-
----
-
-#### Step 2.2: Authentication Pages
-
-- [ ] Create login page UI
-- [ ] Implement login form with validation
-- [ ] Handle authentication state
-- [ ] Redirect logic after login
-- [ ] Protected route middleware
-
-**Files to create**:
-
-- `/app/login/page.tsx`
-- `/src/context/AuthContext.tsx`
-- `/src/hooks/useAuth.ts`
-
----
-
-#### Step 2.3: Dashboard Layout
-
-- [ ] Create dashboard page structure
-- [ ] Create filter panel component
-- [ ] Implement multi-select coin dropdown
-- [ ] Implement multi-select currency dropdown
-- [ ] Implement date range picker
-- [ ] Implement breakdown dimension selector
-
-**Files to create**:
-
-- `/app/dashboard/page.tsx`
-- `/src/components/dashboard/FilterPanel.tsx`
-- `/src/components/dashboard/CoinSelector.tsx`
-- `/src/components/dashboard/CurrencySelector.tsx`
-- `/src/components/dashboard/DateRangePicker.tsx`
-- `/src/components/dashboard/BreakdownSelector.tsx`
-
----
-
-#### Step 2.4: Chart Component
-
-- [ ] Create chart component (line chart)
-- [ ] Implement date as X-axis
-- [ ] Implement price as Y-axis
-- [ ] Display multiple lines for different breakdowns
-- [ ] Implement range selection with mouse
-- [ ] Auto-switch to hourly when range ≤ 2 days
-- [ ] Add loading and error states
-
-**Files to create**:
-
-- `/src/components/dashboard/PriceChart.tsx`
-- `/src/hooks/useChartData.ts`
-
----
-
-#### Step 2.5: Table Component
-
-- [ ] Create data table component
-- [ ] Implement dynamic columns based on breakdown
-- [ ] Implement sorting (click headers)
-- [ ] Implement column reordering (drag & drop)
-- [ ] Implement pagination
-- [ ] Add loading and error states
-- [ ] Handle empty data scenarios
-
-**Files to create**:
-
-- `/src/components/dashboard/PriceTable.tsx`
-- `/src/hooks/useTableData.ts`
-
----
-
-#### Step 2.6: Data Integration & State Management
-
-- [ ] Create API client utilities (Axios/Fetch)
-- [ ] Implement data fetching hooks
-- [ ] Connect filters to API calls
-- [ ] Sync chart and table data
-- [ ] Handle loading states
-- [ ] Handle error states
-- [ ] Implement debouncing for filter changes
-
-**Files to create**:
-
-- `/src/lib/api/client.ts`
-- `/src/hooks/usePriceData.ts`
-- `/src/hooks/useCoins.ts`
-- `/src/hooks/useCurrencies.ts`
-
----
-
-#### Step 2.7: Bonus Feature - Metadata Tooltip
-
-- [ ] Create tooltip component
-- [ ] Fetch metadata from API
-- [ ] Display on hover over coin symbols
-- [ ] Add caching to prevent repeated fetches
-
-**Files to create**:
-
-- `/src/components/dashboard/CoinTooltip.tsx`
-- `/src/hooks/useCoinMetadata.ts`
-
----
-
-#### Step 2.8: Polish & UX Improvements
-
-- [ ] Add loading indicators
-- [ ] Add error messages
-- [ ] Improve responsive design
-- [ ] Add animations/transitions
-- [ ] Optimize performance
-- [ ] Add proper TypeScript types everywhere
-
----
-
-### **PHASE 3: Testing & Deployment** (Priority 3)
-
-#### Step 3.1: Testing
-
-- [ ] Test API endpoints (Postman/Thunder Client)
-- [ ] Test frontend flows
-- [ ] Test error scenarios
-- [ ] Test edge cases (no data, invalid dates, etc.)
-- [ ] Performance testing
-
----
-
-#### Step 3.2: AWS Deployment (Bonus)
-
-- [ ] Set up AWS CDK project
-- [ ] Configure RDS PostgreSQL
-- [ ] Configure Lambda for API routes
-- [ ] Configure S3 + CloudFront for frontend
-- [ ] Set up API Gateway
-- [ ] Configure EventBridge for scheduled fetching
-- [ ] Set up environment variables
-- [ ] Configure IAM roles and policies
-
-**Files to create**:
-
-- `/infrastructure/lib/stack.ts`
-- `/infrastructure/bin/app.ts`
-- `/infrastructure/cdk.json`
-- `/.env.production`
-
----
-
-#### Step 3.3: Documentation
-
-- [ ] Document API endpoints
-- [ ] Document deployment steps
-- [ ] Add environment setup guide
-- [ ] Create demo credentials documentation
-- [ ] Update README with deployment URL
-
----
-
-## 🛠️ Development Setup
-
-### Prerequisites
-
-```bash
-- Node.js 18+
-- PostgreSQL 14+ (or Docker)
-- CoinGecko API Key
-```
-
-### Installation (Will be set up during implementation)
-
-```bash
-# Clone repository
-git clone <repo-url>
-cd hypermonk-case
+# Navigate to CDK directory
+cd cdk
 
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env.local
+# Bootstrap AWS CDK (first time only)
+npx aws-cdk bootstrap
 
-# Set up database
-npm run db:migrate
+# Deploy to development
+npx cdk deploy --all --context env=dev
 
-# Run development server
-npm run dev
+# Deploy to production
+npx cdk deploy --all --context env=prod
 ```
 
-### Environment Variables
+**What gets deployed:**
 
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/crypto_dashboard
+- ✅ RDS PostgreSQL database (t3.micro for dev, t3.small for prod)
+- ✅ Lambda function for scheduled data fetching
+- ✅ EventBridge rule (daily cron at 00:00 UTC)
+- ✅ Secrets Manager for database credentials
+- ✅ VPC with public/private subnets
+- ✅ Security groups and IAM roles
 
-# CoinGecko
-COINGECKO_API_KEY=your_api_key_here
+**CloudFormation Stacks:**
 
-# Auth
-JWT_SECRET=your_secret_key_here
+- `hm-case-Network-{env}` - VPC and networking
+- `hm-case-Database-{env}` - RDS instance
+- `hm-case-Cron-{env}` - Lambda function + EventBridge
 
-# Node
-NODE_ENV=development
+### **Step 2: Initialize Database Schema**
+
+After CDK deployment, run migrations from your local machine:
+
+```bash
+# Get database credentials from Secrets Manager
+aws secretsmanager get-secret-value \
+  --secret-id hm-case-dev-db-credentials \
+  --query SecretString \
+  --output text | jq .
+
+# Update .env with RDS endpoint
+DATABASE_URL=postgresql://postgres:password@rds-endpoint:5432/crypto_dashboard
+
+# Run Prisma migrations
+npx prisma migrate deploy
+
 ```
 
----
+### **Step 3: Deploy Next.js Frontend to AWS Amplify**
 
-## 🚢 Deployment Strategy
+1. **Connect GitHub Repository:**
 
-### Option 1: Vercel (Simple)
+   - Go to AWS Amplify Console
+   - Click "New app" → "Host web app"
+   - Connect your GitHub repository
+   - Select branch: `main`
 
-- Frontend: Automatic deployment
-- Backend: Serverless functions
-- Database: External PostgreSQL (Neon, Supabase)
+2. **Configure Build Settings:**
 
-### Option 2: AWS (Bonus Points)
+   ```yaml
+   version: 1
+   frontend:
+     phases:
+       preBuild:
+         commands:
+           - npm ci
+       build:
+         commands:
+           - npm run build
+     artifacts:
+       baseDirectory: .next
+       files:
+         - "**/*"
+     cache:
+       paths:
+         - node_modules/**/*
+   ```
 
-- Frontend: S3 + CloudFront
-- Backend: Lambda + API Gateway
-- Database: RDS PostgreSQL
-- Scheduler: EventBridge
-- IaC: AWS CDK (TypeScript)
+3. **Add Environment Variables:**
 
----
+   - `DATABASE_URL` - RDS connection string from Secrets Manager
+   - `NODE_ENV` - `production`
 
-## 📊 Success Criteria Checklist
+4. **Deploy:**
+   - Click "Save and deploy"
+   - Amplify will automatically build and deploy on every push to main
 
-### Database Design ✓
+### **AWS Resources Created**
 
-- [ ] Efficient schema supporting daily/hourly granularity
-- [ ] Proper indexes for query performance
-- [ ] Complex aggregation queries working correctly
+| Resource            | Purpose                 | Cost (Estimate)        |
+| ------------------- | ----------------------- | ---------------------- |
+| **RDS PostgreSQL**  | Database storage        | ~$15/month (t3.micro)  |
+| **Lambda Function** | Scheduled data fetching | ~$0 (within free tier) |
+| **EventBridge**     | Cron scheduler          | Free                   |
+| **Secrets Manager** | Credential storage      | $0.40/month            |
+| **VPC**             | Network isolation       | Free                   |
+| **Amplify Hosting** | Next.js frontend        | ~$0-15/month           |
+| **Total**           |                         | **~$15-30/month**      |
 
-### API Integration ✓
+### **Environment Variables (Production)**
 
-- [ ] CoinGecko integration only on backend
-- [ ] Proper error handling
-- [ ] No direct frontend access to CoinGecko
+Store these in **AWS Secrets Manager** (automatically created by CDK):
 
-### Frontend UI/UX ✓
+```bash
+# Database credentials (auto-generated by CDK)
+DB_HOST=hm-case-dev.xxxxx.eu-central-1.rds.amazonaws.com
+DB_USER=postgres
+DB_PASSWORD=<auto-generated>
+DB_NAME=crypto_dashboard
 
-- [ ] Intuitive dashboard design
-- [ ] Clear data visualization (chart + table)
-- [ ] Smooth filtering and interaction
+# Lambda uses Secrets Manager ARN
+SECRET_ARN=arn:aws:secretsmanager:eu-central-1:xxx:secret:hm-case-dev-db-credentials-xxx
 
-### State Management ✓
+# Next.js Amplify uses DATABASE_URL
+DATABASE_URL=postgresql://postgres:password@host:5432/crypto_dashboard
+```
 
-- [ ] Effective state handling
-- [ ] Loading indicators
-- [ ] Error states
+### **Scheduled Data Fetching**
 
-### Error Handling ✓
+The Lambda function automatically runs daily at **00:00 UTC** (configured in EventBridge):
 
-- [ ] No data scenarios handled
-- [ ] Invalid input handling
-- [ ] Network failure handling
-- [ ] User-friendly error messages
+```typescript
+// cdk/lib/cron-stack.ts
+new events.Rule(this, "DailyFetchRule", {
+  schedule: events.Schedule.cron({
+    minute: "15",
+    hour: "12",
+    day: "*",
+    month: "*",
+    year: "*",
+  }),
+});
+```
 
-### Code Quality ✓
+**Manual Invocation (for testing):**
 
-- [ ] Clean, modular code
-- [ ] TypeScript best practices
-- [ ] Clear folder structure
-- [ ] Reusable components
+```bash
+aws lambda invoke \
+  --function-name hm-case-Cron-dev-FetchDataFunction67FE63B8-YcPLLEeYAlor \
+  --region eu-central-1 \
+  /tmp/response.json && cat /tmp/response.json
+```
 
-### Deployment (Bonus) ✓
+**View Logs:**
 
-- [ ] AWS infrastructure as code
-- [ ] Proper IAM roles
-- [ ] Environment variables configured
+```bash
+aws logs tail /aws/lambda/hm-case-Cron-dev-FetchDataFunction67FE63B8-YcPLLEeYAlor \
+  --follow \
+  --region eu-central-1
+```
 
----
+### **Deployment Checklist**
 
-## 🎯 Next Steps
+- [ ] AWS CLI configured with correct credentials
+- [ ] Docker running for Lambda builds
+- [ ] CDK deployed successfully (`cdk deploy --all`)
+- [ ] Database credentials retrieved from Secrets Manager
+- [ ] Prisma migrations executed against RDS
+- [ ] Amplify app connected to GitHub repository
+- [ ] Environment variables configured in Amplify
+- [ ] Lambda function tested with manual invocation
+- [ ] EventBridge rule verified in AWS Console
+- [ ] CloudWatch logs showing successful data fetching
 
-**AWAITING YOUR APPROVAL TO START IMPLEMENTATION**
+### **Monitoring & Logs**
 
-Once you approve this architecture and roadmap, I will:
+**Lambda Execution Logs:**
 
-1. ✅ Start with **Phase 1: Backend Foundation** (Steps 1.1-1.7)
-2. ✅ Move to **Phase 2: Frontend Development** (Steps 2.1-2.8)
-3. ✅ Finish with **Phase 3: Testing & Deployment** (Steps 3.1-3.3)
+```bash
+# Real-time logs
+aws logs tail /aws/lambda/hm-case-Cron-dev-FetchDataFunction67FE63B8-YcPLLEeYAlor --follow --region eu-central-1
 
-**Please review and let me know if you'd like any changes to the architecture or approach before we begin coding!** 🚀
+# Filter for errors
+aws logs filter-log-events \
+  --log-group-name /aws/lambda/hm-case-Cron-dev-FetchDataFunction67FE63B8-YcPLLEeYAlor \
+  --filter-pattern "ERROR" \
+  --region eu-central-1
+```
+
+**Database Monitoring:**
+
+```bash
+# Check RDS instance status
+aws rds describe-db-instances \
+  --db-instance-identifier hm-case-dev \
+  --region eu-central-1
+
+# View CloudWatch metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/RDS \
+  --metric-name DatabaseConnections \
+  --dimensions Name=DBInstanceIdentifier,Value=hm-case-dev \
+  --start-time 2025-01-21T00:00:00Z \
+  --end-time 2025-01-21T23:59:59Z \
+  --period 3600 \
+  --statistics Average \
+  --region eu-central-1
+```
+
+### **Troubleshooting**
+
+**Issue: Lambda timeout (5 minutes exceeded)**
+
+- Solution: Fetches ~14k hourly records in ~55 seconds, should not timeout
+- Verify: Check CloudWatch logs for execution duration
+
+**Issue: Database connection failed**
+
+- Solution: Verify Lambda has VPC access to RDS
+- Check: Security group allows inbound PostgreSQL (port 5432)
+- Verify: Secrets Manager credentials are correct
+
+**Issue: No data being stored**
+
+- Solution: Check Lambda logs for CoinGecko API errors
+- Verify: Rate limiting delay is set to 2000ms (30 req/min)
+- Check: Database connection string in Secrets Manager
+
+**Issue: CDK deployment fails**
+
+- Solution: Run `cdk bootstrap` again
+- Verify: AWS credentials have necessary permissions
+- Check: Docker is running for Lambda function builds
+
+### **Cleanup (Destroy Infrastructure)**
+
+```bash
+cd cdk
+npx cdk destroy --all --context env=dev
+
+# Manually delete:
+# - Amplify app (if not in CDK)
+# - CloudWatch log groups
+# - Secrets Manager secrets
+```
