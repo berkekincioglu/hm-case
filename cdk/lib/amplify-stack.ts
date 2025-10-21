@@ -51,6 +51,9 @@ export class AmplifyStack extends cdk.Stack {
 
       // Build settings will be read from amplify.yml in repo root
 
+      // Platform configuration for Next.js SSR
+      platform: "WEB_COMPUTE",
+
       // Environment variables
       environmentVariables: [
         {
